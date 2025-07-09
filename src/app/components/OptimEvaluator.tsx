@@ -13,36 +13,22 @@ import {
 	Shield,
 	Sparkles,
 	Building,
+	Brain,
 } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import jsPDF from 'jspdf';
-import mammoth from 'mammoth';
+import { useFileProcessing, useDragAndDrop } from '@/hooks/useFileProcessing';
+import type {
+	FileWithContent,
+	EvaluationResult,
+	BasicInfo,
+	FileContent,
+} from '@/types';
 
 // TypeScript interfaces
-interface FileWithContent {
-	file: File;
-	content: string;
-	name: string;
-}
-
-interface EvaluationCriteria {
-	criterion: string;
-	score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
-	justification: string;
-	strengths: string[];
-	improvements: string[];
-	references: string[];
-}
-
-interface EvaluationResult {
-	summary: string;
-	criteria: EvaluationCriteria[];
-	recommendation: string;
-	confidence: number;
-}
+// Las interfaces ahora están en @/types
 
 export default function OptimEvaluator() {
-	const [basicInfo, setBasicInfo] = useState({
+	const [basicInfo, setBasicInfo] = useState<BasicInfo>({
 		title: '',
 		expedient: '',
 		entity: '',
@@ -57,39 +43,33 @@ export default function OptimEvaluator() {
 	const [evaluationResult, setEvaluationResult] =
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
 
 	const specFileRef = useRef<HTMLInputElement>(null);
 	const proposalFileRef = useRef<HTMLInputElement>(null);
 
-	// Function to process files
-	const processFile = async (file: File): Promise<string> => {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
+	// Hooks para procesamiento de archivos
+	const specProcessing = useFileProcessing();
+	const proposalProcessing = useFileProcessing();
+	const specDragDrop = useDragAndDrop();
+	const proposalDragDrop = useDragAndDrop();
 
-			reader.onload = async (e) => {
-				const arrayBuffer = e.target?.result as ArrayBuffer;
+	// Manejar archivos usando el hook
+	const handleFiles = async (files: File[], type: 'spec' | 'proposal') => {
+		setError(null);
 
-				if (file.type === 'application/pdf') {
-					// For PDF, we would need a library like pdf-parse
-					// For now, return a placeholder
-					resolve(`[Contingut PDF de ${file.name}]`);
-				} else if (file.type.includes('word') || file.name.endsWith('.docx')) {
-					try {
-						const result = await mammoth.extractRawText({ arrayBuffer });
-						resolve(result.value);
-					} catch (err) {
-						reject(err);
-					}
-				} else if (file.type === 'text/plain') {
-					resolve(new TextDecoder().decode(arrayBuffer));
-				} else {
-					reject(new Error("Tipus d'arxiu no suportat"));
-				}
-			};
+		try {
+			const processing = type === 'spec' ? specProcessing : proposalProcessing;
+			const processedFiles = await processing.processFiles(files);
 
-			reader.onerror = () => reject(new Error("Error en llegir l'arxiu"));
-			reader.readAsArrayBuffer(file);
-		});
+			if (type === 'spec') {
+				setSpecificationFiles((prev) => [...prev, ...processedFiles]);
+			} else {
+				setProposalFiles((prev) => [...prev, ...processedFiles]);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Error processant arxius');
+		}
 	};
 
 	// Drag and drop handlers
@@ -98,202 +78,239 @@ export default function OptimEvaluator() {
 		e.stopPropagation();
 	}, []);
 
-	const handleDrop = useCallback(
-		async (e: React.DragEvent, type: 'spec' | 'proposal') => {
-			e.preventDefault();
-			e.stopPropagation();
+	const handleSpecDrop = useCallback((e: React.DragEvent) => {
+		const files = Array.from(e.dataTransfer.files);
+		specDragDrop.dragHandlers.onDrop(e, () => handleFiles(files, 'spec'));
+	}, []);
 
-			const files = Array.from(e.dataTransfer.files);
-			await handleFiles(files, type);
-		},
-		[],
-	);
+	const handleProposalDrop = useCallback((e: React.DragEvent) => {
+		const files = Array.from(e.dataTransfer.files);
+		proposalDragDrop.dragHandlers.onDrop(e, () =>
+			handleFiles(files, 'proposal'),
+		);
+	}, []);
 
-	const handleFiles = async (files: File[], type: 'spec' | 'proposal') => {
-		const processedFiles: FileWithContent[] = [];
+	// Función para evaluar con la API
+	const evaluateWithAPI = async (): Promise<EvaluationResult> => {
+		const specifications: FileContent[] = specificationFiles.map((file) => ({
+			name: file.name,
+			content: file.content,
+			type: 'specification' as const,
+		}));
 
-		for (const file of files) {
-			if (file.size > 10 * 1024 * 1024) {
-				// 10MB limit
-				setError(`L'arxiu ${file.name} supera el límit de 10MB`);
-				continue;
-			}
+		const proposals: FileContent[] = proposalFiles.map((file) => ({
+			name: file.name,
+			content: file.content,
+			type: 'proposal' as const,
+		}));
 
-			try {
-				const content = await processFile(file);
-				processedFiles.push({
-					file,
-					content,
-					name: file.name,
-				});
-			} catch (err) {
-				setError(`Error processant ${file.name}: ${err}`);
-			}
+		setEvaluationStatus('Connectant amb la intel·ligència artificial...');
+
+		const response = await fetch('/api/evaluate', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				specifications,
+				proposals,
+			}),
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(errorData.error || 'Error en la evaluación');
 		}
 
-		if (type === 'spec') {
-			setSpecificationFiles((prev) => [...prev, ...processedFiles]);
-		} else {
-			setProposalFiles((prev) => [...prev, ...processedFiles]);
-		}
+		const result = await response.json();
+		return result;
 	};
 
-	// Function to evaluate with AI (simulated)
-	const evaluateWithAI = async (): Promise<EvaluationResult> => {
-		// Simulate call to Google Gemini
-		await new Promise((resolve) => setTimeout(resolve, 3000));
-
-		return {
-			summary:
-				"La proposta presentada compleix amb els requisits tècnics bàsics establerts al plec de condicions. S'observa una sòlida experiència de l'equip tècnic i una metodologia ben estructurada. Tanmateix, s'identifiquen àrees de millora en el cronograma i en la proposta econòmica.",
-			criteria: [
-				{
-					criterion: "Capacitat tècnica de l'equip",
-					score: 'COMPLEIX_EXITOSAMENT',
-					justification:
-						"L'equip proposat compta amb àmplia experiència en projectes similars. Es presenta un CV detallat de cada membre amb certificacions rellevants i projectes previs exitosos. L'estructura organitzativa és clara i ben definida.",
-					strengths: [
-						'Experiència comprovada',
-						'Certificacions actualitzades',
-						'Estructura organitzativa clara',
-					],
-					improvements: [
-						'Podria incloure més detalls sobre disponibilitat',
-						'Falta pla de contingència per a recursos',
-					],
-					references: ['Apartat 3.2 del plec', 'Annex II - Requisits tècnics'],
-				},
-				{
-					criterion: 'Metodologia proposada',
-					score: 'REGULAR',
-					justification:
-						"La metodologia presentada és adequada però genèrica. Es basa en frameworks estàndard de la indústria però manca d'adaptació específica als requisits particulars del projecte. Les fases estan ben definides però els lliurables podrien ser més específics.",
-					strengths: [
-						'Framework reconegut',
-						'Fases ben definides',
-						'Controls de qualitat inclosos',
-					],
-					improvements: [
-						'Adaptació específica al projecte',
-						'Lliurables més detallats',
-						'Mètriques de seguiment',
-					],
-					references: ['Apartat 4.1 del plec', 'Especificacions tècniques'],
-				},
-				{
-					criterion: "Cronograma d'execució",
-					score: 'INSUFICIENT',
-					justification:
-						'El cronograma presentat no és realista per a la complexitat del projecte. Els terminis proposats són massa optimistes i no consideren adequadament les dependències entre tasques. Falta anàlisi de riscos temporals.',
-					strengths: ['Fites principals identificades', "Ús d'eines de gestió"],
-					improvements: [
-						'Terminis més realistes',
-						'Anàlisi de dependències',
-						'Pla de contingència temporal',
-					],
-					references: ['Apartat 5.3 del plec', 'Cronograma mínim requerit'],
-				},
-			],
-			recommendation:
-				"Es recomana sol·licitar aclariments sobre el cronograma i la metodologia abans de l'adjudicació. La proposta té potencial però requereix ajustos importants.",
-			confidence: 0.85,
-		};
-	};
-
-	// Function to generate PDF
+	// Función para generar PDF mejorado
 	const generatePDF = () => {
 		if (!evaluationResult) return;
 
 		const doc = new jsPDF();
 		const pageWidth = doc.internal.pageSize.getWidth();
 		const pageHeight = doc.internal.pageSize.getHeight();
+		const margin = 20;
 
-		// Configure fonts and colors
-		doc.setFontSize(20);
-		doc.setTextColor(25, 152, 117); // Primary color
-		doc.text("INFORME D'AVALUACIÓ DE PROPOSTA", pageWidth / 2, 30, {
+		// Configurar fuentes
+		doc.setFont('helvetica');
+
+		// Portada
+		doc.setFontSize(24);
+		doc.setTextColor(25, 152, 117);
+		doc.text("INFORME D'AVALUACIÓ", pageWidth / 2, 40, { align: 'center' });
+		doc.text('DE PROPOSTA DE LICITACIÓ', pageWidth / 2, 55, {
 			align: 'center',
 		});
 
-		// Basic information
+		// Información básica
 		doc.setFontSize(12);
-		doc.setTextColor(28, 28, 28); // Dark text
-		doc.text(`Títol: ${basicInfo.title}`, 20, 50);
-		doc.text(`Expedient: ${basicInfo.expedient}`, 20, 60);
-		doc.text(`Entitat: ${basicInfo.entity}`, 20, 70);
-		doc.text(`Data: ${new Date().toLocaleDateString('ca-ES')}`, 20, 80);
+		doc.setTextColor(60, 60, 60);
+		doc.text(`Títol: ${basicInfo.title}`, margin, 80);
+		doc.text(`Expedient: ${basicInfo.expedient}`, margin, 95);
+		doc.text(`Entitat: ${basicInfo.entity}`, margin, 110);
+		doc.text(`Data: ${new Date().toLocaleDateString('ca-ES')}`, margin, 125);
+		doc.text(
+			`Confiança de l'avaluació: ${Math.round(
+				evaluationResult.confidence * 100,
+			)}%`,
+			margin,
+			140,
+		);
 
-		// Executive summary
-		doc.setFontSize(14);
+		// Criterios extraídos
+		doc.setFontSize(10);
+		doc.setTextColor(100, 100, 100);
+		doc.text('Criteris avaluats:', margin, 155);
+		evaluationResult.extractedCriteria.forEach((criterion, index) => {
+			if (index < 5) {
+				// Limitar a 5 criterios en portada
+				doc.text(`• ${criterion}`, margin + 5, 165 + index * 5);
+			}
+		});
+
+		// Nueva página para contenido
+		doc.addPage();
+		let yPosition = 30;
+
+		// Resumen ejecutivo
+		doc.setFontSize(16);
 		doc.setTextColor(25, 152, 117);
-		doc.text('RESUM EXECUTIU', 20, 100);
+		doc.text('RESUM EXECUTIU', margin, yPosition);
+		yPosition += 15;
 
 		doc.setFontSize(10);
-		doc.setTextColor(28, 28, 28);
+		doc.setTextColor(60, 60, 60);
 		const splitSummary = doc.splitTextToSize(
 			evaluationResult.summary,
-			pageWidth - 40,
+			pageWidth - 2 * margin,
 		);
-		doc.text(splitSummary, 20, 110);
+		doc.text(splitSummary, margin, yPosition);
+		yPosition += splitSummary.length * 5 + 20;
 
-		let yPosition = 110 + splitSummary.length * 5 + 20;
-
-		// Evaluation by criteria
-		doc.setFontSize(14);
+		// Evaluación detallada
+		doc.setFontSize(16);
 		doc.setTextColor(25, 152, 117);
-		doc.text('AVALUACIÓ DETALLADA', 20, yPosition);
+		doc.text('AVALUACIÓ DETALLADA', margin, yPosition);
 		yPosition += 15;
 
 		evaluationResult.criteria.forEach((criterion, index) => {
-			if (yPosition > pageHeight - 40) {
+			// Verificar si necesitamos nueva página
+			if (yPosition > pageHeight - 80) {
 				doc.addPage();
-				yPosition = 20;
+				yPosition = 30;
 			}
 
+			// Título del criterio
 			doc.setFontSize(12);
-			doc.setTextColor(28, 28, 28);
-			doc.text(`${index + 1}. ${criterion.criterion}`, 20, yPosition);
+			doc.setTextColor(60, 60, 60);
+			doc.text(`${index + 1}. ${criterion.criterion}`, margin, yPosition);
 			yPosition += 10;
 
-			// Score with color
-			const scoreColor =
-				criterion.score === 'COMPLEIX_EXITOSAMENT'
-					? [25, 152, 117]
+			// Puntuación con emoji
+			const scoreText =
+				criterion.score === 'CUMPLE_EXITOSAMENTE'
+					? '🟢 CUMPLE EXITOSAMENTE'
 					: criterion.score === 'REGULAR'
-					? [245, 158, 11]
-					: [220, 38, 38];
-			doc.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2]);
-			doc.text(`Qualificació: ${criterion.score}`, 25, yPosition);
+					? '🟡 REGULAR'
+					: '🔴 INSUFICIENTE';
+
+			doc.setFontSize(10);
+			doc.setTextColor(
+				criterion.score === 'CUMPLE_EXITOSAMENTE'
+					? 25
+					: criterion.score === 'REGULAR'
+					? 245
+					: 220,
+				criterion.score === 'CUMPLE_EXITOSAMENTE'
+					? 152
+					: criterion.score === 'REGULAR'
+					? 158
+					: 38,
+				criterion.score === 'CUMPLE_EXITOSAMENTE'
+					? 117
+					: criterion.score === 'REGULAR'
+					? 11
+					: 38,
+			);
+			doc.text(scoreText, margin + 10, yPosition);
 			yPosition += 10;
 
-			doc.setTextColor(28, 28, 28);
+			// Justificación
+			doc.setTextColor(60, 60, 60);
 			const splitJustification = doc.splitTextToSize(
 				criterion.justification,
-				pageWidth - 50,
+				pageWidth - 2 * margin - 20,
 			);
-			doc.text(splitJustification, 25, yPosition);
-			yPosition += splitJustification.length * 5 + 10;
+			doc.text(splitJustification, margin + 10, yPosition);
+			yPosition += splitJustification.length * 4 + 8;
+
+			// Puntos fuertes
+			if (criterion.strengths.length > 0) {
+				doc.setTextColor(25, 152, 117);
+				doc.text('Punts forts:', margin + 10, yPosition);
+				yPosition += 5;
+				doc.setTextColor(60, 60, 60);
+				criterion.strengths.forEach((strength) => {
+					doc.text(`• ${strength}`, margin + 15, yPosition);
+					yPosition += 4;
+				});
+				yPosition += 3;
+			}
+
+			// Áreas de mejora
+			if (criterion.improvements.length > 0) {
+				doc.setTextColor(220, 38, 38);
+				doc.text('Àrees de millora:', margin + 10, yPosition);
+				yPosition += 5;
+				doc.setTextColor(60, 60, 60);
+				criterion.improvements.forEach((improvement) => {
+					doc.text(`• ${improvement}`, margin + 15, yPosition);
+					yPosition += 4;
+				});
+				yPosition += 8;
+			}
 		});
 
-		// Final recommendation
+		// Recomendación final
 		if (yPosition > pageHeight - 60) {
 			doc.addPage();
-			yPosition = 20;
+			yPosition = 30;
 		}
 
-		doc.setFontSize(14);
+		doc.setFontSize(16);
 		doc.setTextColor(25, 152, 117);
-		doc.text('RECOMANACIÓ FINAL', 20, yPosition);
+		doc.text('RECOMANACIÓ FINAL', margin, yPosition);
 		yPosition += 15;
 
 		doc.setFontSize(10);
-		doc.setTextColor(28, 28, 28);
+		doc.setTextColor(60, 60, 60);
 		const splitRecommendation = doc.splitTextToSize(
 			evaluationResult.recommendation,
-			pageWidth - 40,
+			pageWidth - 2 * margin,
 		);
-		doc.text(splitRecommendation, 20, yPosition);
+		doc.text(splitRecommendation, margin, yPosition);
 
+		// Metadatos finales
+		yPosition += splitRecommendation.length * 4 + 20;
+		doc.setFontSize(8);
+		doc.setTextColor(120, 120, 120);
+		doc.text(
+			"Generat per OptimEvaluator - Sistema d'Intel·ligència Artificial",
+			margin,
+			yPosition,
+		);
+		doc.text(
+			`Data de generació: ${new Date().toLocaleString('ca-ES')}`,
+			margin,
+			yPosition + 10,
+		);
+		doc.text(`Versió del sistema: v1.0`, margin, yPosition + 20);
+
+		// Descargar PDF
 		doc.save(
 			`avaluacio_${basicInfo.expedient}_${
 				new Date().toISOString().split('T')[0]
@@ -314,14 +331,30 @@ export default function OptimEvaluator() {
 
 		setIsEvaluating(true);
 		setError(null);
+		setEvaluationResult(null);
 
 		try {
-			const result = await evaluateWithAI();
+			setEvaluationStatus("Extraient criteris d'avaluació...");
+			const result = await evaluateWithAPI();
 			setEvaluationResult(result);
+			setEvaluationStatus('');
 		} catch (err) {
-			setError("Error durant l'avaluació. Torna-ho a intentar.");
+			setError(
+				`Error durant l'avaluació: ${
+					err instanceof Error ? err.message : 'Error desconegut'
+				}`,
+			);
+			setEvaluationStatus('');
 		} finally {
 			setIsEvaluating(false);
+		}
+	};
+
+	const removeFile = (index: number, type: 'spec' | 'proposal') => {
+		if (type === 'spec') {
+			setSpecificationFiles((files) => files.filter((_, i) => i !== index));
+		} else {
+			setProposalFiles((files) => files.filter((_, i) => i !== index));
 		}
 	};
 
@@ -351,7 +384,7 @@ export default function OptimEvaluator() {
 									OptimEvaluator
 								</h1>
 								<p className="text-sm" style={{ color: '#6f6f6f' }}>
-									Sistema d'Avaluació de Licitacions
+									Sistema d'Avaluació de Licitacions amb IA
 								</p>
 							</div>
 						</div>
@@ -396,8 +429,11 @@ export default function OptimEvaluator() {
 									onChange={(e) =>
 										setBasicInfo({ ...basicInfo, title: e.target.value })
 									}
-									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-									style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
+									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
+									style={{
+										borderColor: '#dfe7e6',
+										color: '#1c1c1c',
+									}}
 									placeholder="Ex: Servei de consultoria tecnològica"
 								/>
 							</div>
@@ -415,8 +451,11 @@ export default function OptimEvaluator() {
 									onChange={(e) =>
 										setBasicInfo({ ...basicInfo, expedient: e.target.value })
 									}
-									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-									style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
+									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
+									style={{
+										borderColor: '#dfe7e6',
+										color: '#1c1c1c',
+									}}
 									placeholder="Ex: EXP-2024-001"
 								/>
 							</div>
@@ -434,8 +473,11 @@ export default function OptimEvaluator() {
 									onChange={(e) =>
 										setBasicInfo({ ...basicInfo, entity: e.target.value })
 									}
-									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-									style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
+									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
+									style={{
+										borderColor: '#dfe7e6',
+										color: '#1c1c1c',
+									}}
 									placeholder="Ex: Generalitat de Catalunya"
 								/>
 							</div>
@@ -453,8 +495,11 @@ export default function OptimEvaluator() {
 										setBasicInfo({ ...basicInfo, context: e.target.value })
 									}
 									rows={3}
-									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-									style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
+									className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
+									style={{
+										borderColor: '#dfe7e6',
+										color: '#1c1c1c',
+									}}
 									placeholder="Informació addicional rellevant per a l'avaluació..."
 								/>
 							</div>
@@ -484,10 +529,18 @@ export default function OptimEvaluator() {
 										Plec de Condicions *
 									</h4>
 									<div
-										className="border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer"
-										style={{ borderColor: '#949494' }}
-										onDragOver={handleDragOver}
-										onDrop={(e) => handleDrop(e, 'spec')}
+										className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer ${
+											specDragDrop.isDragging
+												? 'border-blue-500 bg-blue-50'
+												: ''
+										}`}
+										style={{
+											borderColor: specDragDrop.isDragging
+												? '#3b82f6'
+												: '#949494',
+										}}
+										{...specDragDrop.dragHandlers}
+										onDrop={handleSpecDrop}
 										onClick={() => specFileRef.current?.click()}
 									>
 										<FileCheck
@@ -513,6 +566,35 @@ export default function OptimEvaluator() {
 										className="hidden"
 									/>
 
+									{/* Indicador de progreso para especificaciones */}
+									{specProcessing.isProcessing && (
+										<div
+											className="mt-4 p-4 rounded-lg"
+											style={{ backgroundColor: '#f3f4f6' }}
+										>
+											<div className="flex items-center justify-between mb-2">
+												<span
+													className="text-sm font-medium"
+													style={{ color: '#1c1c1c' }}
+												>
+													Processant: {specProcessing.currentFile}
+												</span>
+												<span className="text-sm" style={{ color: '#6f6f6f' }}>
+													{Math.round(specProcessing.progress)}%
+												</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="h-2 rounded-full transition-all duration-300"
+													style={{
+														backgroundColor: '#199875',
+														width: `${specProcessing.progress}%`,
+													}}
+												></div>
+											</div>
+										</div>
+									)}
+
 									{specificationFiles.length > 0 && (
 										<div className="mt-4 space-y-2">
 											{specificationFiles.map((file, index) => (
@@ -534,11 +616,7 @@ export default function OptimEvaluator() {
 														</span>
 													</div>
 													<button
-														onClick={() =>
-															setSpecificationFiles((files) =>
-																files.filter((_, i) => i !== index),
-															)
-														}
+														onClick={() => removeFile(index, 'spec')}
 														className="text-red-600 hover:text-red-800"
 													>
 														<XCircle className="h-4 w-4" />
@@ -558,10 +636,18 @@ export default function OptimEvaluator() {
 										Proposta a Avaluar *
 									</h4>
 									<div
-										className="border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer"
-										style={{ borderColor: '#949494' }}
-										onDragOver={handleDragOver}
-										onDrop={(e) => handleDrop(e, 'proposal')}
+										className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer ${
+											proposalDragDrop.isDragging
+												? 'border-blue-500 bg-blue-50'
+												: ''
+										}`}
+										style={{
+											borderColor: proposalDragDrop.isDragging
+												? '#3b82f6'
+												: '#949494',
+										}}
+										{...proposalDragDrop.dragHandlers}
+										onDrop={handleProposalDrop}
 										onClick={() => proposalFileRef.current?.click()}
 									>
 										<FileText
@@ -587,6 +673,35 @@ export default function OptimEvaluator() {
 										className="hidden"
 									/>
 
+									{/* Indicador de progreso para propuestas */}
+									{proposalProcessing.isProcessing && (
+										<div
+											className="mt-4 p-4 rounded-lg"
+											style={{ backgroundColor: '#f3f4f6' }}
+										>
+											<div className="flex items-center justify-between mb-2">
+												<span
+													className="text-sm font-medium"
+													style={{ color: '#1c1c1c' }}
+												>
+													Processant: {proposalProcessing.currentFile}
+												</span>
+												<span className="text-sm" style={{ color: '#6f6f6f' }}>
+													{Math.round(proposalProcessing.progress)}%
+												</span>
+											</div>
+											<div className="w-full bg-gray-200 rounded-full h-2">
+												<div
+													className="h-2 rounded-full transition-all duration-300"
+													style={{
+														backgroundColor: '#199875',
+														width: `${proposalProcessing.progress}%`,
+													}}
+												></div>
+											</div>
+										</div>
+									)}
+
 									{proposalFiles.length > 0 && (
 										<div className="mt-4 space-y-2">
 											{proposalFiles.map((file, index) => (
@@ -608,11 +723,7 @@ export default function OptimEvaluator() {
 														</span>
 													</div>
 													<button
-														onClick={() =>
-															setProposalFiles((files) =>
-																files.filter((_, i) => i !== index),
-															)
-														}
+														onClick={() => removeFile(index, 'proposal')}
 														className="text-red-600 hover:text-red-800"
 													>
 														<XCircle className="h-4 w-4" />
@@ -626,35 +737,77 @@ export default function OptimEvaluator() {
 						</div>
 					</div>
 
-					{/* Evaluation button */}
+					{/* Evaluation section */}
 					<div
 						className="border-t px-6 py-4"
 						style={{ borderColor: '#dfe7e6', backgroundColor: '#dfe7e6' }}
 					>
 						<div className="flex justify-between items-center">
 							<div className="flex items-center space-x-4">
-								{error && (
+								{(error ||
+									specProcessing.error ||
+									proposalProcessing.error) && (
 									<div className="flex items-center text-red-600">
 										<AlertCircle className="h-5 w-5 mr-2" />
-										<span className="text-sm">{error}</span>
+										<span className="text-sm">
+											{error ||
+												specProcessing.error ||
+												proposalProcessing.error}
+										</span>
+									</div>
+								)}
+								{evaluationStatus && (
+									<div
+										className="flex items-center"
+										style={{ color: '#199875' }}
+									>
+										<Brain className="h-5 w-5 mr-2" />
+										<span className="text-sm">{evaluationStatus}</span>
+									</div>
+								)}
+								{(specProcessing.isProcessing ||
+									proposalProcessing.isProcessing) && (
+									<div
+										className="flex items-center"
+										style={{ color: '#199875' }}
+									>
+										<Loader2 className="h-5 w-5 mr-2 animate-spin" />
+										<span className="text-sm">Processant arxius...</span>
 									</div>
 								)}
 							</div>
 
 							<button
 								onClick={handleEvaluate}
-								disabled={isEvaluating}
+								disabled={
+									isEvaluating ||
+									specProcessing.isProcessing ||
+									proposalProcessing.isProcessing
+								}
 								className="px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white disabled:opacity-50"
 								style={{
-									backgroundColor: isEvaluating ? '#949494' : '#199875',
+									backgroundColor:
+										isEvaluating ||
+										specProcessing.isProcessing ||
+										proposalProcessing.isProcessing
+											? '#949494'
+											: '#199875',
 								}}
 								onMouseEnter={(e) => {
-									if (!isEvaluating) {
+									if (
+										!isEvaluating &&
+										!specProcessing.isProcessing &&
+										!proposalProcessing.isProcessing
+									) {
 										e.currentTarget.style.backgroundColor = '#188869';
 									}
 								}}
 								onMouseLeave={(e) => {
-									if (!isEvaluating) {
+									if (
+										!isEvaluating &&
+										!specProcessing.isProcessing &&
+										!proposalProcessing.isProcessing
+									) {
 										e.currentTarget.style.backgroundColor = '#199875';
 									}
 								}}
@@ -662,7 +815,13 @@ export default function OptimEvaluator() {
 								{isEvaluating ? (
 									<>
 										<Loader2 className="h-5 w-5 animate-spin" />
-										<span>Avaluant...</span>
+										<span>Avaluant amb IA...</span>
+									</>
+								) : specProcessing.isProcessing ||
+								  proposalProcessing.isProcessing ? (
+									<>
+										<Loader2 className="h-5 w-5 animate-spin" />
+										<span>Processant arxius...</span>
 									</>
 								) : (
 									<>
@@ -688,9 +847,46 @@ export default function OptimEvaluator() {
 									<CheckCircle className="mr-2 h-5 w-5" />
 									Resultat de l'Avaluació
 								</h3>
+								<p className="text-sm text-white opacity-90 mt-1">
+									Confiança: {Math.round(evaluationResult.confidence * 100)}% |
+									Criteris avaluats: {evaluationResult.criteria.length}
+								</p>
 							</div>
 
 							<div className="p-6">
+								{/* Criterios extraídos */}
+								<div
+									className="rounded-lg p-4 mb-6"
+									style={{
+										backgroundColor: '#f8f9fa',
+										borderLeft: '4px solid #199875',
+									}}
+								>
+									<h4
+										className="text-md font-semibold mb-2"
+										style={{ color: '#1c1c1c' }}
+									>
+										Criteris Identificats per la IA
+									</h4>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+										{evaluationResult.extractedCriteria.map(
+											(criterion, index) => (
+												<div
+													key={index}
+													className="flex items-center text-sm"
+													style={{ color: '#6f6f6f' }}
+												>
+													<CheckCircle
+														className="h-4 w-4 mr-2"
+														style={{ color: '#199875' }}
+													/>
+													{criterion}
+												</div>
+											),
+										)}
+									</div>
+								</div>
+
 								{/* Executive summary */}
 								<div
 									className="rounded-lg p-6 mb-6"
@@ -733,7 +929,7 @@ export default function OptimEvaluator() {
 													className="px-3 py-1 rounded-full text-sm font-medium"
 													style={{
 														backgroundColor:
-															criterion.score === 'COMPLEIX_EXITOSAMENT'
+															criterion.score === 'CUMPLE_EXITOSAMENTE'
 																? '#199875'
 																: criterion.score === 'REGULAR'
 																? '#f59e0b'
@@ -741,11 +937,11 @@ export default function OptimEvaluator() {
 														color: 'white',
 													}}
 												>
-													{criterion.score === 'COMPLEIX_EXITOSAMENT'
-														? '🟢 COMPLEIX EXITOSAMENT'
+													{criterion.score === 'CUMPLE_EXITOSAMENTE'
+														? '🟢 CUMPLE EXITOSAMENTE'
 														: criterion.score === 'REGULAR'
 														? '🟡 REGULAR'
-														: '🔴 INSUFICIENT'}
+														: '🔴 INSUFICIENTE'}
 												</span>
 											</div>
 
@@ -754,39 +950,71 @@ export default function OptimEvaluator() {
 											</p>
 
 											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-												<div>
+												{criterion.strengths.length > 0 && (
+													<div>
+														<h6
+															className="font-medium mb-2"
+															style={{ color: '#199875' }}
+														>
+															Punts Forts
+														</h6>
+														<ul className="space-y-1">
+															{criterion.strengths.map((strength, i) => (
+																<li
+																	key={i}
+																	className="text-sm"
+																	style={{ color: '#188869' }}
+																>
+																	• {strength}
+																</li>
+															))}
+														</ul>
+													</div>
+												)}
+
+												{criterion.improvements.length > 0 && (
+													<div>
+														<h6 className="font-medium mb-2 text-red-700">
+															Àrees de Millora
+														</h6>
+														<ul className="space-y-1">
+															{criterion.improvements.map((improvement, i) => (
+																<li key={i} className="text-sm text-red-600">
+																	• {improvement}
+																</li>
+															))}
+														</ul>
+													</div>
+												)}
+											</div>
+
+											{criterion.references.length > 0 && (
+												<div
+													className="mt-4 pt-4 border-t"
+													style={{ borderColor: '#dfe7e6' }}
+												>
 													<h6
 														className="font-medium mb-2"
-														style={{ color: '#199875' }}
+														style={{ color: '#6f6f6f' }}
 													>
-														Punts Forts
+														Referències
 													</h6>
-													<ul className="space-y-1">
-														{criterion.strengths.map((strength, i) => (
-															<li
+													<div className="flex flex-wrap gap-2">
+														{criterion.references.map((ref, i) => (
+															<span
 																key={i}
-																className="text-sm"
-																style={{ color: '#188869' }}
+																className="px-2 py-1 rounded text-xs"
+																style={{
+																	backgroundColor: '#f3f4f6',
+																	color: '#6f6f6f',
+																}}
 															>
-																• {strength}
-															</li>
+																{ref}
+															</span>
 														))}
-													</ul>
+													</div>
 												</div>
-
-												<div>
-													<h6 className="font-medium mb-2 text-red-700">
-														Àrees de Millora
-													</h6>
-													<ul className="space-y-1">
-														{criterion.improvements.map((improvement, i) => (
-															<li key={i} className="text-sm text-red-600">
-																• {improvement}
-															</li>
-														))}
-													</ul>
-												</div>
-											</div>
+											)}
 										</div>
 									))}
 								</div>
