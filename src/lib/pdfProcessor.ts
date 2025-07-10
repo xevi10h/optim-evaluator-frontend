@@ -1,6 +1,12 @@
 // src/lib/pdfProcessor.ts
-import type { FileContent } from '@/types';
-import { extractTextFromPDFAdvanced } from './pdfAdvancedProcessor';
+import { FileContent } from '@/types';
+import * as pdfjsLib from 'pdfjs-dist';
+// Add TextItem to the import
+import type {
+	PDFDocumentProxy,
+	TextContent,
+	TextItem,
+} from 'pdfjs-dist/types/src/display/api';
 
 const EXTRACTION_CONFIG = {
 	maxPages: 50,
@@ -8,170 +14,7 @@ const EXTRACTION_CONFIG = {
 	minTextLength: 10,
 };
 
-// Función principal que intenta múltiples métodos
-export async function extractTextFromPDF(file: File): Promise<string> {
-	if (typeof window === 'undefined') {
-		throw new Error('PDF processing solo disponible en el cliente');
-	}
-
-	// Intentar método 1: Procesador avanzado de PDF.js
-	try {
-		console.log('Intentando extraer texto con procesador avanzado...');
-		return await extractTextFromPDFAdvanced(file);
-	} catch (error) {
-		console.warn('Procesador avanzado falló:', error);
-
-		// Intentar método 2: PDF.js estándar
-		try {
-			console.log('Intentando método estándar de PDF.js...');
-			return await extractWithPDFJS(file);
-		} catch (fallbackError) {
-			console.warn('PDF.js estándar falló:', fallbackError);
-
-			// Método 3: Contenido placeholder
-			return generatePDFPlaceholder(file);
-		}
-	}
-}
-
-// Método 2: PDF.js estándar con configuración mejorada
-async function extractWithPDFJS(file: File): Promise<string> {
-	return new Promise(async (resolve, reject) => {
-		const timeoutId = setTimeout(() => {
-			reject(new Error('Timeout procesando PDF con PDF.js'));
-		}, EXTRACTION_CONFIG.timeout);
-
-		try {
-			// Importación dinámica de pdfjs-dist
-			const pdfjsLib = await import('pdfjs-dist');
-
-			// Asegurar que el worker esté configurado
-			if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-				pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-			}
-
-			// Convertir archivo a ArrayBuffer
-			const arrayBuffer = await file.arrayBuffer();
-
-			// Cargar el documento
-			const loadingTask = pdfjsLib.getDocument({
-				data: arrayBuffer,
-				cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
-				cMapPacked: true,
-			});
-
-			const pdf = await loadingTask.promise;
-			let fullText = '';
-			const maxPages = Math.min(pdf.numPages, EXTRACTION_CONFIG.maxPages);
-
-			console.log(`PDF cargado: ${pdf.numPages} páginas`);
-
-			for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-				try {
-					const page = await pdf.getPage(pageNum);
-					const textContent = await page.getTextContent();
-
-					// Procesar items de texto
-					const textItems = textContent.items as any[];
-					let pageText = '';
-
-					// Agrupar por líneas
-					const lines: { [key: number]: any[] } = {};
-
-					textItems.forEach((item) => {
-						if (item.str) {
-							const y = Math.round(item.transform[5]);
-							if (!lines[y]) lines[y] = [];
-							lines[y].push(item);
-						}
-					});
-
-					// Ordenar líneas y construir texto
-					const sortedYs = Object.keys(lines)
-						.map(Number)
-						.sort((a, b) => b - a);
-
-					sortedYs.forEach((y, index) => {
-						const lineItems = lines[y].sort(
-							(a: any, b: any) => a.transform[4] - b.transform[4],
-						);
-						const lineText = lineItems.map((item: any) => item.str).join(' ');
-
-						if (index > 0 && sortedYs[index - 1] - y > 10) {
-							pageText += '\n\n';
-						} else if (index > 0) {
-							pageText += '\n';
-						}
-
-						pageText += lineText;
-					});
-
-					if (pageText.trim()) {
-						fullText += `\n\n=== PÀGINA ${pageNum} ===\n${pageText}`;
-					}
-
-					console.log(`Página ${pageNum} procesada correctamente`);
-				} catch (pageError) {
-					console.warn(`Error procesando página ${pageNum}:`, pageError);
-				}
-			}
-
-			clearTimeout(timeoutId);
-
-			if (fullText.trim().length < EXTRACTION_CONFIG.minTextLength) {
-				throw new Error('No se pudo extraer suficiente texto del PDF');
-			}
-
-			console.log(`Texto total extraído: ${fullText.length} caracteres`);
-			resolve(fullText);
-		} catch (error) {
-			clearTimeout(timeoutId);
-			console.error('Error en PDF.js:', error);
-			reject(error);
-		}
-	});
-}
-
-// Método 3: Placeholder informativo
-function generatePDFPlaceholder(file: File): string {
-	return `[PDF: ${file.name}]
-
-NOTA IMPORTANT: Aquest PDF no s'ha pogut processar automàticament.
-
-Possibles causes:
-- El PDF conté text en format d'imatge (escanejat)
-- El PDF està protegit o xifrat
-- El PDF utilitza fonts o codificació especial
-- Error temporal en el sistema de processament
-
-RECOMANACIONS:
-1. Converteix el PDF a format text seleccionable
-2. Utilitza un PDF no protegit
-3. Prova amb un document Word (.docx) si és possible
-4. Verifica que el text del PDF es pot seleccionar manualment
-
-El sistema continuarà amb l'avaluació utilitzant la informació disponible dels altres documents.`;
-}
-
-// Función para procesar archivos Word
-export async function processWordFile(file: File): Promise<string> {
-	try {
-		const mammoth = await import('mammoth');
-		const arrayBuffer = await file.arrayBuffer();
-		const result = await mammoth.extractRawText({ arrayBuffer });
-
-		if (result.value.length < EXTRACTION_CONFIG.minTextLength) {
-			throw new Error('Documento Word vacío o sin contenido legible');
-		}
-
-		return result.value;
-	} catch (error) {
-		console.error('Error processing Word file:', error);
-		throw new Error(`Error procesando documento Word: ${error}`);
-	}
-}
-
-// Función principal para procesar archivos
+// Función principal simplificada para procesar archivos
 export async function processFile(file: File): Promise<string> {
 	try {
 		console.log(`Procesando archivo: ${file.name}, tipo: ${file.type}`);
@@ -186,7 +29,7 @@ export async function processFile(file: File): Promise<string> {
 			file.name.toLowerCase().endsWith('.pdf')
 		) {
 			console.log('Procesando PDF...');
-			const text = await extractTextFromPDF(file);
+			const text = await extractTextWithPDFJS(file);
 			console.log(`Texto extraído del PDF: ${text.substring(0, 200)}...`);
 			return cleanExtractedText(text);
 		} else if (
@@ -224,6 +67,319 @@ export async function processFile(file: File): Promise<string> {
 	}
 }
 
+export async function extractTextWithPDFJS(file: File): Promise<string> {
+	if (typeof window === 'undefined') {
+		throw new Error(
+			'El procesamiento de PDF solo está disponible en el cliente',
+		);
+	}
+
+	try {
+		pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+		const arrayBuffer = await file.arrayBuffer();
+		const loadingTask = pdfjsLib.getDocument({
+			data: arrayBuffer,
+			verbosity: 0,
+		});
+
+		const pdf: PDFDocumentProxy = await loadingTask.promise;
+		let fullText = '';
+		const maxPages = Math.min(pdf.numPages, 50); // Using a constant for clarity
+
+		for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+			try {
+				const page = await pdf.getPage(pageNum);
+				const textContent: TextContent = await page.getTextContent();
+
+				// CORRECTED LINE:
+				// This type predicate now correctly tells TypeScript that any item
+				// that passes the filter is of the type 'TextItem'.
+				const pageText = textContent.items
+					.filter((item): item is TextItem => 'str' in item)
+					.map((item: TextItem) => item.str)
+					.join(' ');
+
+				if (pageText.trim()) {
+					fullText += pageText + '\n\n';
+				}
+				page.cleanup();
+			} catch (pageError) {
+				console.warn(
+					`Error procesando la página ${pageNum} del PDF:`,
+					pageError,
+				);
+			}
+		}
+
+		if (fullText.trim().length < 10) {
+			// Using a constant for clarity
+			throw new Error(
+				'No se pudo extraer suficiente texto del PDF. Puede que el documento solo contenga imágenes.',
+			);
+		}
+
+		return fullText;
+	} catch (error) {
+		console.error('Error final durante la extracción con PDF.js:', error);
+		throw error;
+	}
+}
+
+// Método 1: PDF-lib (más simple y confiable)
+async function extractWithPDFLib(file: File): Promise<string> {
+	try {
+		const { PDFDocument } = await import('pdf-lib');
+
+		const arrayBuffer = await file.arrayBuffer();
+		const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+		const pages = pdfDoc.getPages();
+		let fullText = '';
+
+		for (
+			let i = 0;
+			i < Math.min(pages.length, EXTRACTION_CONFIG.maxPages);
+			i++
+		) {
+			const page = pages[i];
+
+			// PDF-lib no tiene extracción de texto directa, pero podemos intentar
+			// extraer del contenido de la página
+			try {
+				// Intentar obtener contenido de texto de la página
+				const content = page.node.Contents();
+				if (content) {
+					fullText += `\n\n=== PÀGINA ${i + 1} ===\n`;
+					// Aquí necesitaríamos un parser más sofisticado
+					// Por ahora, usaremos este método como fallback
+				}
+			} catch (pageError) {
+				console.warn(`Error procesando página ${i + 1}:`, pageError);
+			}
+		}
+
+		if (fullText.trim().length < EXTRACTION_CONFIG.minTextLength) {
+			throw new Error('No se pudo extraer texto con PDF-lib');
+		}
+
+		return fullText;
+	} catch (error) {
+		console.error('Error con PDF-lib:', error);
+		throw error;
+	}
+}
+
+// Método 2: PDF.js simplificado (sin worker externo)
+async function extractWithSimplePDFJS(file: File): Promise<string> {
+	try {
+		// Intentar importación dinámica más segura
+		const pdfjsLib = await import('pdfjs-dist');
+
+		// Configurar worker de manera más segura
+		if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+			// Usar worker inline simple
+			const workerBlob = new Blob(
+				[
+					`
+				self.onmessage = function(e) {
+					try {
+						// Worker mínimo para PDF.js
+						importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js');
+					} catch (err) {
+						console.warn('Worker PDF.js no disponible');
+					}
+				};
+			`,
+				],
+				{ type: 'application/javascript' },
+			);
+
+			pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
+		}
+
+		const arrayBuffer = await file.arrayBuffer();
+		const loadingTask = pdfjsLib.getDocument({
+			data: arrayBuffer,
+			verbosity: 0,
+			disableStream: true,
+			disableAutoFetch: true,
+		});
+
+		const pdf = await loadingTask.promise;
+		let fullText = '';
+		const maxPages = Math.min(pdf.numPages, EXTRACTION_CONFIG.maxPages);
+
+		for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+			try {
+				const page = await pdf.getPage(pageNum);
+				const textContent = await page.getTextContent();
+
+				const pageText = textContent.items
+					.filter((item: any) => item.str)
+					.map((item: any) => item.str)
+					.join(' ');
+
+				if (pageText.trim()) {
+					fullText += `\n\n=== PÀGINA ${pageNum} ===\n${pageText}`;
+				}
+			} catch (pageError) {
+				console.warn(`Error procesando página ${pageNum}:`, pageError);
+			}
+		}
+
+		if (fullText.trim().length < EXTRACTION_CONFIG.minTextLength) {
+			throw new Error('No se pudo extraer suficiente texto');
+		}
+
+		return fullText;
+	} catch (error) {
+		console.error('Error con PDF.js simplificado:', error);
+		throw error;
+	}
+}
+
+// Método 3: Extracción manual básica
+async function extractWithManualParsing(file: File): Promise<string> {
+	try {
+		const arrayBuffer = await file.arrayBuffer();
+		const uint8Array = new Uint8Array(arrayBuffer);
+
+		// Buscar patrones de texto en el PDF
+		let text = '';
+		let currentString = '';
+		let inTextObject = false;
+
+		for (let i = 0; i < uint8Array.length - 10; i++) {
+			const char = uint8Array[i];
+
+			// Buscar marcadores de inicio de texto
+			if (char === 0x42 && uint8Array[i + 1] === 0x54) {
+				// "BT"
+				inTextObject = true;
+				continue;
+			}
+
+			// Buscar marcadores de fin de texto
+			if (char === 0x45 && uint8Array[i + 1] === 0x54) {
+				// "ET"
+				inTextObject = false;
+				if (currentString.trim()) {
+					text += currentString + ' ';
+					currentString = '';
+				}
+				continue;
+			}
+
+			// Si estamos en un objeto de texto y el carácter es imprimible
+			if (inTextObject && char >= 32 && char <= 126) {
+				currentString += String.fromCharCode(char);
+			} else if (inTextObject && (char === 10 || char === 13)) {
+				if (currentString.trim()) {
+					text += currentString + '\n';
+					currentString = '';
+				}
+			} else if (currentString.length > 0) {
+				if (currentString.trim()) {
+					text += currentString + ' ';
+				}
+				currentString = '';
+			}
+		}
+
+		// Limpiar el texto extraído
+		text = text
+			.replace(/[^\x20-\x7E\n\r\tàèéíòóúÀÈÉÍÒÓÚñÑçÇüÜ]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+
+		if (text.length < EXTRACTION_CONFIG.minTextLength) {
+			throw new Error('Extracción manual insuficiente');
+		}
+
+		return `=== CONTENIDO EXTRAÍDO MANUALMENTE ===\n\n${text}`;
+	} catch (error) {
+		console.error('Error en extracción manual:', error);
+		throw error;
+	}
+}
+
+// Función para procesar archivos Word
+export async function processWordFile(file: File): Promise<string> {
+	try {
+		const mammoth = await import('mammoth');
+		const arrayBuffer = await file.arrayBuffer();
+		const result = await mammoth.extractRawText({ arrayBuffer });
+
+		if (result.value.length < EXTRACTION_CONFIG.minTextLength) {
+			throw new Error('Documento Word vacío o sin contenido legible');
+		}
+
+		return result.value;
+	} catch (error) {
+		console.error('Error processing Word file:', error);
+		throw new Error(`Error procesando documento Word: ${error}`);
+	}
+}
+
+// Placeholder informativo mejorado
+function generatePDFPlaceholder(file: File): string {
+	return `[PDF: ${file.name}]
+
+⚠️ IMPORTANTE: Este PDF no se pudo procesar automáticamente.
+
+INFORMACIÓN DEL ARCHIVO:
+- Nombre: ${file.name}
+- Tamaño: ${formatFileSize(file.size)}
+- Tipo: ${file.type}
+
+POSIBLES CAUSAS:
+• El PDF contiene texto en formato de imagen (escaneado)
+• El PDF está protegido, cifrado o corrupto
+• El PDF utiliza codificación especial o fonts no estándar
+• Error temporal en el sistema de procesamiento
+
+RECOMENDACIONES:
+1. 📋 Copia manualmente el texto relevante del PDF y pégalo en un archivo .txt
+2. 📄 Convierte el PDF a formato Word (.docx) si es posible
+3. 🔍 Verifica que el texto del PDF se puede seleccionar manualmente
+4. 🔄 Intenta con otro PDF del mismo contenido
+
+INSTRUCCIONES PARA CONTINUAR:
+- El sistema puede continuar la evaluación con los otros documentos disponibles
+- Para mejores resultados, incluye el contenido de este PDF en formato texto
+- Puedes mencionar manualmente los criterios importantes en el campo "Context Adicional"
+
+CONTENIDO SUGERIDO PARA INCLUIR:
+- Criterios de evaluación específicos
+- Requisitos técnicos principales  
+- Puntuación o metodología de evaluación
+- Cualquier información relevante para la evaluación de propuestas`;
+}
+
+// Función para limpiar texto extraído
+export function cleanExtractedText(text: string): string {
+	return (
+		text
+			// Normalizar espacios y saltos de línea
+			.replace(/\r\n/g, '\n')
+			.replace(/\r/g, '\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.replace(/[ \t]+/g, ' ')
+			// Eliminar caracteres de control
+			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+			// Limpiar caracteres especiales mal decodificados
+			.replace(/�/g, '')
+			// Trim de cada línea
+			.split('\n')
+			.map((line) => line.trim())
+			.join('\n')
+			// Eliminar líneas vacías consecutivas
+			.replace(/\n{2,}/g, '\n\n')
+			.trim()
+	);
+}
+
 // Función para validar el contenido extraído
 export function validateExtractedContent(
 	content: string,
@@ -247,29 +403,6 @@ export function validateExtractedContent(
 	}
 
 	return true;
-}
-
-// Función mejorada para limpiar texto
-export function cleanExtractedText(text: string): string {
-	return (
-		text
-			// Normalizar espacios y saltos de línea
-			.replace(/\r\n/g, '\n')
-			.replace(/\r/g, '\n')
-			.replace(/\n{3,}/g, '\n\n')
-			.replace(/[ \t]+/g, ' ')
-			// Eliminar caracteres de control
-			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
-			// Limpiar caracteres especiales mal decodificados
-			.replace(/�/g, '')
-			// Trim de cada línea
-			.split('\n')
-			.map((line) => line.trim())
-			.join('\n')
-			// Eliminar líneas vacías consecutivas
-			.replace(/\n{2,}/g, '\n\n')
-			.trim()
-	);
 }
 
 // Funciones para el servidor
