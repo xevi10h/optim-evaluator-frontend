@@ -1,5 +1,6 @@
 // src/lib/pdfProcessor.ts
 import type { FileContent } from '@/types';
+import { extractTextFromPDFAdvanced } from './pdfAdvancedProcessor';
 
 const EXTRACTION_CONFIG = {
 	maxPages: 50,
@@ -13,17 +14,19 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 		throw new Error('PDF processing solo disponible en el cliente');
 	}
 
-	// Intentar método 1: PDF.js con CDN
+	// Intentar método 1: Procesador avanzado de PDF.js
 	try {
-		return await extractWithPDFJS(file);
+		console.log('Intentando extraer texto con procesador avanzado...');
+		return await extractTextFromPDFAdvanced(file);
 	} catch (error) {
-		console.warn('PDF.js falló, intentando método alternativo:', error);
+		console.warn('Procesador avanzado falló:', error);
 
-		// Intentar método 2: Procesamiento básico
+		// Intentar método 2: PDF.js estándar
 		try {
-			return await extractTextFromPDFBasic(file);
+			console.log('Intentando método estándar de PDF.js...');
+			return await extractWithPDFJS(file);
 		} catch (fallbackError) {
-			console.warn('Procesamiento básico falló:', fallbackError);
+			console.warn('PDF.js estándar falló:', fallbackError);
 
 			// Método 3: Contenido placeholder
 			return generatePDFPlaceholder(file);
@@ -31,7 +34,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 	}
 }
 
-// Método 1: PDF.js con configuración robusta
+// Método 2: PDF.js estándar con configuración mejorada
 async function extractWithPDFJS(file: File): Promise<string> {
 	return new Promise(async (resolve, reject) => {
 		const timeoutId = setTimeout(() => {
@@ -39,38 +42,75 @@ async function extractWithPDFJS(file: File): Promise<string> {
 		}, EXTRACTION_CONFIG.timeout);
 
 		try {
-			// Importación dinámica
-			const pdfjs = await import('pdfjs-dist');
+			// Importación dinámica de pdfjs-dist
+			const pdfjsLib = await import('pdfjs-dist');
 
-			// Configurar worker usando CDN
-			pdfjs.GlobalWorkerOptions.workerSrc =
-				'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+			// Asegurar que el worker esté configurado
+			if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+				pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+			}
 
+			// Convertir archivo a ArrayBuffer
 			const arrayBuffer = await file.arrayBuffer();
-			const loadingTask = pdfjs.getDocument({
+
+			// Cargar el documento
+			const loadingTask = pdfjsLib.getDocument({
 				data: arrayBuffer,
-				verbosity: 0,
-				useSystemFonts: false,
-				disableFontFace: true,
+				cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
+				cMapPacked: true,
 			});
 
 			const pdf = await loadingTask.promise;
 			let fullText = '';
 			const maxPages = Math.min(pdf.numPages, EXTRACTION_CONFIG.maxPages);
 
+			console.log(`PDF cargado: ${pdf.numPages} páginas`);
+
 			for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
 				try {
 					const page = await pdf.getPage(pageNum);
 					const textContent = await page.getTextContent();
 
-					const pageText = textContent.items
-						.filter((item: any) => item.str && item.str.trim())
-						.map((item: any) => item.str)
-						.join(' ');
+					// Procesar items de texto
+					const textItems = textContent.items as any[];
+					let pageText = '';
 
-					if (pageText.trim().length > 0) {
-						fullText += `\n\n=== PÁGINA ${pageNum} ===\n${pageText}`;
+					// Agrupar por líneas
+					const lines: { [key: number]: any[] } = {};
+
+					textItems.forEach((item) => {
+						if (item.str) {
+							const y = Math.round(item.transform[5]);
+							if (!lines[y]) lines[y] = [];
+							lines[y].push(item);
+						}
+					});
+
+					// Ordenar líneas y construir texto
+					const sortedYs = Object.keys(lines)
+						.map(Number)
+						.sort((a, b) => b - a);
+
+					sortedYs.forEach((y, index) => {
+						const lineItems = lines[y].sort(
+							(a: any, b: any) => a.transform[4] - b.transform[4],
+						);
+						const lineText = lineItems.map((item: any) => item.str).join(' ');
+
+						if (index > 0 && sortedYs[index - 1] - y > 10) {
+							pageText += '\n\n';
+						} else if (index > 0) {
+							pageText += '\n';
+						}
+
+						pageText += lineText;
+					});
+
+					if (pageText.trim()) {
+						fullText += `\n\n=== PÀGINA ${pageNum} ===\n${pageText}`;
 					}
+
+					console.log(`Página ${pageNum} procesada correctamente`);
 				} catch (pageError) {
 					console.warn(`Error procesando página ${pageNum}:`, pageError);
 				}
@@ -82,55 +122,14 @@ async function extractWithPDFJS(file: File): Promise<string> {
 				throw new Error('No se pudo extraer suficiente texto del PDF');
 			}
 
+			console.log(`Texto total extraído: ${fullText.length} caracteres`);
 			resolve(fullText);
 		} catch (error) {
 			clearTimeout(timeoutId);
+			console.error('Error en PDF.js:', error);
 			reject(error);
 		}
 	});
-}
-
-// Método 2: Procesamiento básico (fallback)
-export async function extractTextFromPDFBasic(file: File): Promise<string> {
-	try {
-		const arrayBuffer = await file.arrayBuffer();
-		const uint8Array = new Uint8Array(arrayBuffer);
-		const text = new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
-
-		// Buscar patrones de texto
-		const patterns = [
-			/\(([^)]{3,})\)/g,
-			/\[([^\]]{3,})\]/g,
-			/\/([A-Za-z0-9\s]{3,})\s/g,
-			/BT\s+([^ET]+)\s+ET/g,
-			/Tj\s*\(([^)]+)\)/g,
-		];
-
-		let extractedText = '';
-		let bestMatch = '';
-
-		for (const pattern of patterns) {
-			const matches = text.match(pattern);
-			if (matches && matches.length > 0) {
-				const cleanedMatches = matches
-					.map((match) => match.replace(/[()[\]/BT ET Tj]/g, ''))
-					.filter((text) => text.trim().length > 2)
-					.join(' ');
-
-				if (cleanedMatches.length > bestMatch.length) {
-					bestMatch = cleanedMatches;
-				}
-			}
-		}
-
-		if (bestMatch.length > EXTRACTION_CONFIG.minTextLength) {
-			return bestMatch;
-		}
-
-		throw new Error('No se pudo extraer texto usando procesamiento básico');
-	} catch (error) {
-		throw new Error(`Error en procesamiento básico: ${error}`);
-	}
 }
 
 // Método 3: Placeholder informativo
@@ -182,16 +181,26 @@ export async function processFile(file: File): Promise<string> {
 			throw new Error('Archivo demasiado grande (máximo 10MB)');
 		}
 
-		if (file.type === 'application/pdf') {
+		if (
+			file.type === 'application/pdf' ||
+			file.name.toLowerCase().endsWith('.pdf')
+		) {
 			console.log('Procesando PDF...');
 			const text = await extractTextFromPDF(file);
-			console.log(`Texto extraído del PDF: ${text.substring(0, 10000)} `);
+			console.log(`Texto extraído del PDF: ${text.substring(0, 200)}...`);
 			return cleanExtractedText(text);
-		} else if (file.type.includes('word') || file.name.endsWith('.docx')) {
+		} else if (
+			file.type.includes('word') ||
+			file.name.toLowerCase().endsWith('.docx') ||
+			file.name.toLowerCase().endsWith('.doc')
+		) {
 			console.log('Procesando documento Word...');
 			const text = await processWordFile(file);
 			return cleanExtractedText(text);
-		} else if (file.type === 'text/plain') {
+		} else if (
+			file.type === 'text/plain' ||
+			file.name.toLowerCase().endsWith('.txt')
+		) {
 			console.log('Procesando archivo de texto plano...');
 			const text = await file.text();
 
@@ -201,7 +210,9 @@ export async function processFile(file: File): Promise<string> {
 
 			return cleanExtractedText(text);
 		} else {
-			throw new Error(`Tipo de archivo no soportado: ${file.type}`);
+			throw new Error(
+				`Tipo de archivo no soportado: ${file.type || 'desconocido'}`,
+			);
 		}
 	} catch (error) {
 		console.error('Error processing file:', error);
@@ -225,7 +236,11 @@ export function validateExtractedContent(
 		return false;
 	}
 
-	const meaningfulContent = content.replace(/[\s\n\r\t]/g, '').length;
+	// Verificar que no sea solo caracteres especiales o basura
+	const meaningfulContent = content.replace(
+		/[^a-zA-Z0-9àèéíòóúÀÈÉÍÒÓÚñÑçÇ]/g,
+		'',
+	).length;
 	if (meaningfulContent < EXTRACTION_CONFIG.minTextLength) {
 		console.warn(`Contenido sin significado en ${filename}`);
 		return false;
@@ -234,13 +249,27 @@ export function validateExtractedContent(
 	return true;
 }
 
-// Función para limpiar texto
+// Función mejorada para limpiar texto
 export function cleanExtractedText(text: string): string {
-	return text
-		.replace(/\s+/g, ' ')
-		.replace(/[\x00-\x1F\x7F-\x9F]/g, '')
-		.replace(/\n\s*\n/g, '\n\n')
-		.trim();
+	return (
+		text
+			// Normalizar espacios y saltos de línea
+			.replace(/\r\n/g, '\n')
+			.replace(/\r/g, '\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.replace(/[ \t]+/g, ' ')
+			// Eliminar caracteres de control
+			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+			// Limpiar caracteres especiales mal decodificados
+			.replace(/�/g, '')
+			// Trim de cada línea
+			.split('\n')
+			.map((line) => line.trim())
+			.join('\n')
+			// Eliminar líneas vacías consecutivas
+			.replace(/\n{2,}/g, '\n\n')
+			.trim()
+	);
 }
 
 // Funciones para el servidor
@@ -275,15 +304,26 @@ export async function processServerFiles(
 	return processedFiles;
 }
 
-// Función utilitaria
+// Función utilitaria mejorada
 export function getFileInfo(file: File) {
+	const extension = file.name.split('.').pop()?.toLowerCase() || '';
+	const isSupported = ['pdf', 'docx', 'doc', 'txt'].includes(extension);
+
 	return {
 		name: file.name,
-		type: file.type,
+		type: file.type || 'unknown',
 		size: file.size,
-		extension: file.name.split('.').pop()?.toLowerCase(),
-		isSupported: ['pdf', 'docx', 'doc', 'txt'].includes(
-			file.name.split('.').pop()?.toLowerCase() || '',
-		),
+		extension,
+		isSupported,
+		sizeFormatted: formatFileSize(file.size),
 	};
+}
+
+// Función para formatear tamaño de archivo
+function formatFileSize(bytes: number): string {
+	if (bytes === 0) return '0 Bytes';
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
