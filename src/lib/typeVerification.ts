@@ -20,7 +20,7 @@ const sampleFileContent: FileContent = {
 // Verificar tipos de EvaluationCriteria
 const sampleCriteria: EvaluationCriteria = {
 	criterion: 'Test criterion',
-	score: 'CUMPLE_EXITOSAMENTE', // Debe ser 'INSUFICIENTE' | 'REGULAR' | 'CUMPLE_EXITOSAMENTE'
+	score: 'COMPLEIX_EXITOSAMENT', // Debe ser 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT'
 	justification: 'Sample justification',
 	strengths: ['Strength 1', 'Strength 2'],
 	improvements: ['Improvement 1', 'Improvement 2'],
@@ -90,9 +90,9 @@ export function verifyProcessingTypes(): void {
 
 	// Verificar que el tipo de EvaluationCriteria.score es restrictivo
 	const validScores: EvaluationCriteria['score'][] = [
-		'INSUFICIENTE',
+		'INSUFICIENT',
 		'REGULAR',
-		'CUMPLE_EXITOSAMENTE',
+		'COMPLEIX_EXITOSAMENT',
 	];
 	console.log('Valid EvaluationCriteria scores:', validScores);
 

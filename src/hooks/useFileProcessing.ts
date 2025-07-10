@@ -20,19 +20,19 @@ export function useFileProcessing() {
 		async (files: File[]): Promise<FileWithContent[]> => {
 			const processedFiles: FileWithContent[] = [];
 
-			setState((prev) => ({
-				...prev,
+			setState({
 				isProcessing: true,
+				currentFile: null,
 				error: null,
 				progress: 0,
-			}));
+			});
 
 			try {
 				for (let i = 0; i < files.length; i++) {
 					const file = files[i];
 					const fileInfo = getFileInfo(file);
 
-					// Actualizar estado
+					// Actualizar progreso
 					setState((prev) => ({
 						...prev,
 						currentFile: file.name,
@@ -53,15 +53,24 @@ export function useFileProcessing() {
 					}
 
 					try {
-						// Procesar archivo
-						const content = await processFile(file);
+						console.log(
+							`Procesando archivo ${i + 1}/${files.length}: ${file.name}`,
+						);
 
-						// Validar contenido
-						if (!validateExtractedContent(content, file.name)) {
-							console.warn(
-								`Contenido insuficiente en ${file.name}, pero continuando...`,
-							);
-						}
+						// Procesar archivo con timeout más largo
+						const content = await Promise.race([
+							processFile(file),
+							new Promise<never>((_, reject) =>
+								setTimeout(
+									() => reject(new Error('Timeout procesando archivo')),
+									60000,
+								),
+							),
+						]);
+
+						console.log(
+							`Archivo procesado: ${file.name}, contenido: ${content.length} caracteres`,
+						);
 
 						processedFiles.push({
 							file,
@@ -71,18 +80,27 @@ export function useFileProcessing() {
 					} catch (fileError) {
 						console.error(`Error procesando ${file.name}:`, fileError);
 
-						// Decidir si continuar o fallar
+						// Si es el único archivo, mostrar error pero continuar
 						if (files.length === 1) {
-							throw fileError; // Si es el único archivo, fallar
-						} else {
-							// Si hay múltiples archivos, continuar con un contenido de error
+							// En lugar de fallar completamente, crear un placeholder
 							processedFiles.push({
 								file,
-								content: `[Error procesando ${file.name}: ${
+								content: `[Error procesando ${file.name}]: ${
 									fileError instanceof Error
 										? fileError.message
 										: 'Error desconegut'
-								}]`,
+								}. Si us plau, prova amb un altre format o verifica que l'arxiu no estigui corrupte.`,
+								name: file.name,
+							});
+						} else {
+							// Continuar con placeholder para múltiples archivos
+							processedFiles.push({
+								file,
+								content: `[Error procesando ${file.name}]: ${
+									fileError instanceof Error
+										? fileError.message
+										: 'Error desconegut'
+								}`,
 								name: file.name,
 							});
 						}
@@ -92,15 +110,17 @@ export function useFileProcessing() {
 				setState((prev) => ({ ...prev, progress: 100 }));
 				return processedFiles;
 			} catch (error) {
-				setState((prev) => ({
-					...prev,
-					error: error instanceof Error ? error.message : 'Error desconegut',
+				const errorMessage =
+					error instanceof Error ? error.message : 'Error desconegut';
+				setState({
 					isProcessing: false,
 					currentFile: null,
+					error: errorMessage,
 					progress: 0,
-				}));
+				});
 				throw error;
 			} finally {
+				// Limpiar estado después de mostrar progreso completo
 				setTimeout(() => {
 					setState((prev) => ({
 						...prev,
@@ -108,7 +128,7 @@ export function useFileProcessing() {
 						currentFile: null,
 						progress: 0,
 					}));
-				}, 500);
+				}, 1000);
 			}
 		},
 		[],
@@ -135,7 +155,7 @@ export function useFileProcessing() {
 	};
 }
 
-// Hook para drag and drop
+// Hook para drag and drop mejorado
 export function useDragAndDrop() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragCounter, setDragCounter] = useState(0);
@@ -173,7 +193,19 @@ export function useDragAndDrop() {
 			setDragCounter(0);
 
 			const files = Array.from(e.dataTransfer.files);
-			onDrop(files);
+
+			// Filtrar solo archivos soportados
+			const supportedFiles = files.filter((file) => {
+				const fileInfo = getFileInfo(file);
+				return fileInfo.isSupported;
+			});
+
+			if (supportedFiles.length === 0) {
+				console.warn('No se encontraron archivos soportados');
+				return;
+			}
+
+			onDrop(supportedFiles);
 		},
 		[],
 	);
@@ -189,15 +221,13 @@ export function useDragAndDrop() {
 	};
 }
 
-// Función utilitaria para formatear el progreso
+// Funciones utilitarias
 export function formatProgress(progress: number): string {
 	return `${Math.round(progress)}%`;
 }
 
-// Función para obtener el icono del archivo
 export function getFileTypeIcon(filename: string): string {
 	const ext = filename.toLowerCase().split('.').pop();
-
 	switch (ext) {
 		case 'pdf':
 			return '📄';
@@ -211,7 +241,6 @@ export function getFileTypeIcon(filename: string): string {
 	}
 }
 
-// Función para obtener el color del archivo según su estado
 export function getFileStatusColor(hasError: boolean): string {
 	return hasError ? '#dc2626' : '#199875';
 }

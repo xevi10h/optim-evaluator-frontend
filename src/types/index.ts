@@ -1,6 +1,4 @@
 // src/types/index.ts
-// Tipos globales para OptimEvaluator
-
 export interface FileWithContent {
 	file: File;
 	content: string;
@@ -15,7 +13,7 @@ export interface FileContent {
 
 export interface EvaluationCriteria {
 	criterion: string;
-	score: 'INSUFICIENTE' | 'REGULAR' | 'CUMPLE_EXITOSAMENTE';
+	score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 	justification: string;
 	strengths: string[];
 	improvements: string[];
@@ -78,7 +76,6 @@ export interface ProcessingError {
 	step?: string;
 }
 
-// Constantes de la aplicación
 export const SUPPORTED_FILE_TYPES = [
 	'application/pdf',
 	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -89,16 +86,15 @@ export const SUPPORTED_FILE_TYPES = [
 export const SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt'] as const;
 
 export const EVALUATION_SCORES = {
-	INSUFICIENTE: 'INSUFICIENTE',
+	INSUFICIENT: 'INSUFICIENT',
 	REGULAR: 'REGULAR',
-	CUMPLE_EXITOSAMENTE: 'CUMPLE_EXITOSAMENTE',
+	COMPLEIX_EXITOSAMENT: 'COMPLEIX_EXITOSAMENT',
 } as const;
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const MAX_CRITERIA = 8;
 export const MIN_JUSTIFICATION_LENGTH = 100;
 
-// Utilidades de tipo
 export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
