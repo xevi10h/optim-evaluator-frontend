@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle, Download } from 'lucide-react';
+import { CheckCircle, Download, Package, AlertTriangle } from 'lucide-react';
 import type { EvaluationResult } from '@/types';
 
 interface EvaluationResultsProps {
@@ -13,6 +13,12 @@ export default function EvaluationResults({
 	evaluationResult,
 	onDownloadPDF,
 }: EvaluationResultsProps) {
+	const hasMultipleLots = evaluationResult.lots.length > 1;
+	const totalCriteria = evaluationResult.lots.reduce(
+		(sum, lot) => sum + lot.criteria.length,
+		0,
+	);
+
 	return (
 		<div className="border-t" style={{ borderColor: '#dfe7e6' }}>
 			<div
@@ -26,42 +32,16 @@ export default function EvaluationResults({
 					Resultat de l'Avaluació
 				</h3>
 				<p className="text-sm text-white opacity-90 mt-1">
-					Confiança: {Math.round(evaluationResult.confidence * 100)}% | Criteris
-					avaluats: {evaluationResult.criteria.length}
+					{hasMultipleLots
+						? `Lots avaluats: ${evaluationResult.lots.length} | `
+						: ''}
+					Criteris avaluats: {totalCriteria} | Confiança:{' '}
+					{Math.round(evaluationResult.overallConfidence * 100)}%
 				</p>
 			</div>
 
 			<div className="p-6">
-				<div
-					className="rounded-lg p-4 mb-6"
-					style={{
-						backgroundColor: '#f8f9fa',
-						borderLeft: '4px solid #199875',
-					}}
-				>
-					<h4
-						className="text-md font-semibold mb-2"
-						style={{ color: '#1c1c1c' }}
-					>
-						Criteris Identificats
-					</h4>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-						{evaluationResult.extractedCriteria.map((criterion, index) => (
-							<div
-								key={index}
-								className="flex items-center text-sm"
-								style={{ color: '#6f6f6f' }}
-							>
-								<CheckCircle
-									className="h-4 w-4 mr-2"
-									style={{ color: '#199875' }}
-								/>
-								{criterion}
-							</div>
-						))}
-					</div>
-				</div>
-
+				{/* Overall Summary */}
 				<div
 					className="rounded-lg p-6 mb-6"
 					style={{ backgroundColor: '#dfe7e6' }}
@@ -70,126 +50,245 @@ export default function EvaluationResults({
 						className="text-lg font-semibold mb-3"
 						style={{ color: '#1c1c1c' }}
 					>
-						Resum Executiu
+						Resum General
 					</h4>
 					<p className="leading-relaxed" style={{ color: '#6f6f6f' }}>
-						{evaluationResult.summary}
+						{evaluationResult.overallSummary}
 					</p>
 				</div>
 
-				<div className="space-y-6">
-					<h4 className="text-lg font-semibold" style={{ color: '#1c1c1c' }}>
-						Avaluació per Criteris
-					</h4>
-
-					{evaluationResult.criteria.map((criterion, index) => (
-						<div
-							key={index}
-							className="border rounded-lg p-6"
-							style={{ borderColor: '#dfe7e6' }}
-						>
-							<div className="flex items-start justify-between mb-4 gap-4">
-								<h5
-									className="text-md font-semibold flex-1"
-									style={{ color: '#1c1c1c' }}
-								>
-									{index + 1}. {criterion.criterion}
-								</h5>
-								<div className="flex items-center justify-center min-w-[200px] flex-shrink-0">
-									<span
-										className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap inline-flex items-center"
-										style={{
-											backgroundColor:
-												criterion.score === 'COMPLEIX_EXITOSAMENT'
-													? '#199875'
-													: criterion.score === 'REGULAR'
-													? '#f59e0b'
-													: '#dc2626',
-											color: 'white',
-										}}
-									>
-										{criterion.score === 'COMPLEIX_EXITOSAMENT'
-											? '🟢 Compleix exitosament'
-											: criterion.score === 'REGULAR'
-											? '🟡 Regular'
-											: '🔴 Insuficient'}
-									</span>
-								</div>
-							</div>
-
-							<p className="mb-4" style={{ color: '#6f6f6f' }}>
-								{criterion.justification}
-							</p>
-
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								{criterion.strengths.length > 0 && (
-									<div>
-										<h6
-											className="font-medium mb-2"
-											style={{ color: '#199875' }}
-										>
-											Punts Forts
-										</h6>
-										<ul className="space-y-1">
-											{criterion.strengths.map((strength, i) => (
-												<li
-													key={i}
-													className="text-sm"
-													style={{ color: '#188869' }}
-												>
-													• {strength}
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
-
-								{criterion.improvements.length > 0 && (
-									<div>
-										<h6 className="font-medium mb-2 text-red-700">
-											Àrees de Millora
-										</h6>
-										<ul className="space-y-1">
-											{criterion.improvements.map((improvement, i) => (
-												<li key={i} className="text-sm text-red-600">
-													• {improvement}
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
-							</div>
-
-							{criterion.references.length > 0 && (
+				{/* Lots Evaluation */}
+				<div className="space-y-8">
+					{evaluationResult.lots.map((lot, lotIndex) => (
+						<div key={lot.lotNumber} className="space-y-6">
+							{hasMultipleLots && (
 								<div
-									className="mt-4 pt-4 border-t"
+									className="flex items-center space-x-3 pb-4 border-b"
 									style={{ borderColor: '#dfe7e6' }}
 								>
-									<h6 className="font-medium mb-2" style={{ color: '#6f6f6f' }}>
-										Referències
-									</h6>
-									<div className="flex flex-wrap gap-2">
-										{criterion.references.map((ref, i) => (
+									<Package className="h-6 w-6" style={{ color: '#199875' }} />
+									<h4
+										className="text-lg font-semibold"
+										style={{ color: '#1c1c1c' }}
+									>
+										Lot {lot.lotNumber}: {lot.lotTitle}
+									</h4>
+									{!lot.hasProposal && (
+										<div
+											className="flex items-center space-x-1 px-3 py-1 rounded-full"
+											style={{ backgroundColor: '#fff3cd' }}
+										>
+											<AlertTriangle
+												className="h-4 w-4"
+												style={{ color: '#856404' }}
+											/>
 											<span
-												key={i}
-												className="px-2 py-1 rounded text-xs"
-												style={{
-													backgroundColor: '#f3f4f6',
-													color: '#6f6f6f',
-												}}
+												className="text-xs font-medium"
+												style={{ color: '#856404' }}
 											>
-												{ref}
+												No presentat
 											</span>
+										</div>
+									)}
+								</div>
+							)}
+
+							{!lot.hasProposal ? (
+								<div
+									className="text-center py-8 rounded-lg"
+									style={{ backgroundColor: '#fff3cd' }}
+								>
+									<AlertTriangle
+										className="h-12 w-12 mx-auto mb-4"
+										style={{ color: '#856404' }}
+									/>
+									<p
+										className="text-lg font-medium"
+										style={{ color: '#856404' }}
+									>
+										No s'ha presentat proposta per aquest lot
+									</p>
+									<p className="text-sm mt-2" style={{ color: '#856404' }}>
+										No es pot realitzar l'avaluació sense documentació
+									</p>
+								</div>
+							) : (
+								<>
+									{/* Lot Summary */}
+									<div
+										className="rounded-lg p-4 mb-4"
+										style={{
+											backgroundColor: '#f8f9fa',
+											borderLeft: '4px solid #199875',
+										}}
+									>
+										<h5
+											className="text-md font-semibold mb-2"
+											style={{ color: '#1c1c1c' }}
+										>
+											Resum del lot
+										</h5>
+										<p
+											className="text-sm leading-relaxed"
+											style={{ color: '#6f6f6f' }}
+										>
+											{lot.summary}
+										</p>
+									</div>
+
+									{/* Criteria Evaluation */}
+									<div className="space-y-6">
+										<h5
+											className="text-lg font-semibold"
+											style={{ color: '#1c1c1c' }}
+										>
+											Avaluació per Criteris - Lot {lot.lotNumber}
+										</h5>
+
+										{lot.criteria.map((criterion, index) => (
+											<div
+												key={index}
+												className="border rounded-lg p-6"
+												style={{ borderColor: '#dfe7e6' }}
+											>
+												<div className="flex items-start justify-between mb-4 gap-4">
+													<h6
+														className="text-md font-semibold flex-1"
+														style={{ color: '#1c1c1c' }}
+													>
+														{index + 1}. {criterion.criterion}
+													</h6>
+													<div className="flex items-center justify-center min-w-[200px] flex-shrink-0">
+														<span
+															className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap inline-flex items-center"
+															style={{
+																backgroundColor:
+																	criterion.score === 'COMPLEIX_EXITOSAMENT'
+																		? '#199875'
+																		: criterion.score === 'REGULAR'
+																		? '#f59e0b'
+																		: '#dc2626',
+																color: 'white',
+															}}
+														>
+															{criterion.score === 'COMPLEIX_EXITOSAMENT'
+																? '🟢 Compleix exitosament'
+																: criterion.score === 'REGULAR'
+																? '🟡 Regular'
+																: '🔴 Insuficient'}
+														</span>
+													</div>
+												</div>
+
+												<p className="mb-4" style={{ color: '#6f6f6f' }}>
+													{criterion.justification}
+												</p>
+
+												<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+													{criterion.strengths.length > 0 && (
+														<div>
+															<h6
+																className="font-medium mb-2"
+																style={{ color: '#199875' }}
+															>
+																Punts Forts
+															</h6>
+															<ul className="space-y-1">
+																{criterion.strengths.map((strength, i) => (
+																	<li
+																		key={i}
+																		className="text-sm"
+																		style={{ color: '#188869' }}
+																	>
+																		• {strength}
+																	</li>
+																))}
+															</ul>
+														</div>
+													)}
+
+													{criterion.improvements.length > 0 && (
+														<div>
+															<h6 className="font-medium mb-2 text-red-700">
+																Àrees de Millora
+															</h6>
+															<ul className="space-y-1">
+																{criterion.improvements.map(
+																	(improvement, i) => (
+																		<li
+																			key={i}
+																			className="text-sm text-red-600"
+																		>
+																			• {improvement}
+																		</li>
+																	),
+																)}
+															</ul>
+														</div>
+													)}
+												</div>
+
+												{criterion.references.length > 0 && (
+													<div
+														className="mt-4 pt-4 border-t"
+														style={{ borderColor: '#dfe7e6' }}
+													>
+														<h6
+															className="font-medium mb-2"
+															style={{ color: '#6f6f6f' }}
+														>
+															Referències
+														</h6>
+														<div className="flex flex-wrap gap-2">
+															{criterion.references.map((ref, i) => (
+																<span
+																	key={i}
+																	className="px-2 py-1 rounded text-xs"
+																	style={{
+																		backgroundColor: '#f3f4f6',
+																		color: '#6f6f6f',
+																	}}
+																>
+																	{ref}
+																</span>
+															))}
+														</div>
+													</div>
+												)}
+											</div>
 										))}
 									</div>
-								</div>
+
+									{/* Lot Recommendation */}
+									<div
+										className="rounded-lg p-4 mt-6"
+										style={{
+											backgroundColor: '#fff3cd',
+											borderColor: '#ffeaa7',
+										}}
+									>
+										<h6
+											className="text-md font-semibold mb-2"
+											style={{ color: '#856404' }}
+										>
+											Recomanació per Lot {lot.lotNumber}
+										</h6>
+										<p
+											className="text-sm leading-relaxed"
+											style={{ color: '#856404' }}
+										>
+											{lot.recommendation}
+										</p>
+									</div>
+								</>
 							)}
 						</div>
 					))}
 				</div>
 
+				{/* Overall Recommendation */}
 				<div
-					className="rounded-lg p-6 mt-6"
+					className="rounded-lg p-6 mt-8"
 					style={{ backgroundColor: '#fff3cd', borderColor: '#ffeaa7' }}
 				>
 					<h4
@@ -199,7 +298,7 @@ export default function EvaluationResults({
 						Recomanació Final
 					</h4>
 					<p className="leading-relaxed" style={{ color: '#856404' }}>
-						{evaluationResult.recommendation}
+						{evaluationResult.overallRecommendation}
 					</p>
 				</div>
 

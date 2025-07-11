@@ -8,6 +8,13 @@ export interface FileContent {
 	name: string;
 	content: string;
 	type: 'specification' | 'proposal';
+	lotNumber?: number; // For proposals, indicates which lot this file is for
+}
+
+export interface LotInfo {
+	lotNumber: number;
+	title: string;
+	description?: string;
 }
 
 export interface EvaluationCriteria {
@@ -19,12 +26,22 @@ export interface EvaluationCriteria {
 	references: string[];
 }
 
-export interface EvaluationResult {
-	summary: string;
+export interface LotEvaluation {
+	lotNumber: number;
+	lotTitle: string;
+	hasProposal: boolean;
 	criteria: EvaluationCriteria[];
+	summary: string;
 	recommendation: string;
 	confidence: number;
-	extractedCriteria: string[];
+}
+
+export interface EvaluationResult {
+	lots: LotEvaluation[];
+	extractedLots: LotInfo[];
+	overallSummary: string;
+	overallRecommendation: string;
+	overallConfidence: number;
 }
 
 export interface ProcessingState {
@@ -39,6 +56,10 @@ export interface BasicInfo {
 	expedient: string;
 	entity: string;
 	context: string;
+}
+
+export interface ProposalFile extends FileWithContent {
+	lotNumber: number;
 }
 
 export interface APIResponse<T> {

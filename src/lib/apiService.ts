@@ -6,6 +6,13 @@ export interface FileContent {
 	name: string;
 	content: string;
 	type: 'specification' | 'proposal';
+	lotNumber?: number;
+}
+
+export interface LotInfo {
+	lotNumber: number;
+	title: string;
+	description?: string;
 }
 
 export interface ProcessedFile {
@@ -27,8 +34,10 @@ export interface UploadResponse {
 	};
 }
 
-export interface EvaluationResult {
-	summary: string;
+export interface LotEvaluation {
+	lotNumber: number;
+	lotTitle: string;
+	hasProposal: boolean;
 	criteria: Array<{
 		criterion: string;
 		score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
@@ -37,9 +46,17 @@ export interface EvaluationResult {
 		improvements: string[];
 		references: string[];
 	}>;
+	summary: string;
 	recommendation: string;
 	confidence: number;
-	extractedCriteria: string[];
+}
+
+export interface EvaluationResult {
+	lots: LotEvaluation[];
+	extractedLots: LotInfo[];
+	overallSummary: string;
+	overallRecommendation: string;
+	overallConfidence: number;
 }
 
 class ApiService {
@@ -101,17 +118,59 @@ class ApiService {
 		return await response.json();
 	}
 
+	async extractLots(specifications: FileContent[]): Promise<LotInfo[]> {
+		return this.makeRequest<LotInfo[]>('/extract-lots', {
+			method: 'POST',
+			body: JSON.stringify({ specifications }),
+		});
+	}
+
+	async evaluateProposalWithLots(
+		specifications: FileContent[],
+		proposals: FileContent[],
+		lots: LotInfo[],
+	): Promise<EvaluationResult> {
+		return this.makeRequest<EvaluationResult>('/evaluate-lots', {
+			method: 'POST',
+			body: JSON.stringify({
+				specifications,
+				proposals,
+				lots,
+			}),
+		});
+	}
+
+	// Keep legacy method for backward compatibility
 	async evaluateProposal(
 		specifications: FileContent[],
 		proposals: FileContent[],
 	): Promise<EvaluationResult> {
-		return this.makeRequest<EvaluationResult>('/evaluate', {
+		const singleLotResult = await this.makeRequest<any>('/evaluate', {
 			method: 'POST',
 			body: JSON.stringify({
 				specifications,
 				proposals,
 			}),
 		});
+
+		// Convert legacy format to new format
+		return {
+			lots: [
+				{
+					lotNumber: 1,
+					lotTitle: 'Lot Únic',
+					hasProposal: true,
+					criteria: singleLotResult.criteria,
+					summary: singleLotResult.summary,
+					recommendation: singleLotResult.recommendation,
+					confidence: singleLotResult.confidence,
+				},
+			],
+			extractedLots: [{ lotNumber: 1, title: 'Lot Únic' }],
+			overallSummary: singleLotResult.summary,
+			overallRecommendation: singleLotResult.recommendation,
+			overallConfidence: singleLotResult.confidence,
+		};
 	}
 
 	async healthCheck(): Promise<{
@@ -155,12 +214,16 @@ export function useApiService() {
 	const uploadFiles = (files: File[], type: 'specification' | 'proposal') =>
 		executeRequest(() => apiService.uploadFiles(files, type));
 
-	const evaluateProposal = (
+	const extractLots = (specifications: FileContent[]) =>
+		executeRequest(() => apiService.extractLots(specifications));
+
+	const evaluateProposalWithLots = (
 		specifications: FileContent[],
 		proposals: FileContent[],
+		lots: LotInfo[],
 	) =>
 		executeRequest(() =>
-			apiService.evaluateProposal(specifications, proposals),
+			apiService.evaluateProposalWithLots(specifications, proposals, lots),
 		);
 
 	const healthCheck = () => executeRequest(() => apiService.healthCheck());
@@ -169,7 +232,8 @@ export function useApiService() {
 		loading,
 		error,
 		uploadFiles,
-		evaluateProposal,
+		extractLots,
+		evaluateProposalWithLots,
 		healthCheck,
 		clearError: () => setError(null),
 	};

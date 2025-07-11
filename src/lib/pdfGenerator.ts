@@ -24,10 +24,9 @@ export class PDFGeneratorService {
 		this.currentY = 90;
 
 		this.addGeneralInfo(basicInfo, evaluationResult);
-		this.addExtractedCriteria(evaluationResult.extractedCriteria);
-		this.addExecutiveSummary(evaluationResult.summary);
-		this.addDetailedEvaluation(evaluationResult.criteria);
-		this.addFinalRecommendation(evaluationResult.recommendation);
+		this.addOverallSummary(evaluationResult);
+		this.addLotsEvaluation(evaluationResult);
+		this.addOverallRecommendation(evaluationResult);
 
 		this.addFooter();
 
@@ -153,6 +152,14 @@ export class PDFGeneratorService {
 		this.currentY += 10;
 	}
 
+	private addSubSectionTitle(title: string): void {
+		this.doc.setFontSize(12);
+		this.doc.setTextColor(25, 152, 117);
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text(title, this.margin, this.currentY);
+		this.currentY += 8;
+	}
+
 	private addGeneralInfo(
 		basicInfo: BasicInfo,
 		evaluationResult: EvaluationResult,
@@ -163,6 +170,11 @@ export class PDFGeneratorService {
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
 
+		const totalCriteria = evaluationResult.lots.reduce(
+			(sum, lot) => sum + lot.criteria.length,
+			0,
+		);
+
 		const infoItems = [
 			['Títol:', basicInfo.title],
 			['Expedient:', basicInfo.expedient],
@@ -170,9 +182,10 @@ export class PDFGeneratorService {
 			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
 			[
 				"Confiança de l'avaluació:",
-				`${Math.round(evaluationResult.confidence * 100)}%`,
+				`${Math.round(evaluationResult.overallConfidence * 100)}%`,
 			],
-			['Criteris avaluats:', evaluationResult.criteria.length.toString()],
+			['Lots avaluats:', evaluationResult.lots.length.toString()],
+			['Total criteris avaluats:', totalCriteria.toString()],
 		];
 
 		infoItems.forEach(([label, value]) => {
@@ -206,32 +219,15 @@ export class PDFGeneratorService {
 		this.currentY += 20;
 	}
 
-	private addExtractedCriteria(extractedCriteria: string[]): void {
-		this.checkPageBreak(30);
-		this.addSectionTitle('CRITERIS IDENTIFICATS');
-
-		this.doc.setFontSize(9);
-		this.doc.setTextColor(60, 60, 60);
-		this.doc.setFont('helvetica', 'normal');
-
-		extractedCriteria.forEach((criterion) => {
-			this.checkPageBreak(8);
-			this.doc.text(`• ${criterion}`, this.margin + 5, this.currentY);
-			this.currentY += 5;
-		});
-
-		this.currentY += 10;
-	}
-
-	private addExecutiveSummary(summary: string): void {
+	private addOverallSummary(evaluationResult: EvaluationResult): void {
 		this.checkPageBreak(40);
-		this.addSectionTitle('RESUM EXECUTIU');
+		this.addSectionTitle('RESUM GENERAL');
 
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
 		const summaryHeight = this.addWrappedText(
-			summary,
+			evaluationResult.overallSummary,
 			this.margin,
 			this.currentY,
 			this.contentWidth,
@@ -239,39 +235,156 @@ export class PDFGeneratorService {
 		this.currentY += summaryHeight + 15;
 	}
 
-	private addDetailedEvaluation(criteria: any[]): void {
-		this.checkPageBreak(30);
-		this.addSectionTitle('AVALUACIÓ DETALLADA PER CRITERIS');
-		this.currentY += 5;
+	private addLotsEvaluation(evaluationResult: EvaluationResult): void {
+		const hasMultipleLots = evaluationResult.lots.length > 1;
 
-		criteria.forEach((criterion, index) => {
-			this.checkPageBreak(80);
-			this.addCriterionEvaluation(criterion, index + 1);
+		evaluationResult.lots.forEach((lot, index) => {
+			this.checkPageBreak(50);
+
+			// Lot header
+			if (hasMultipleLots) {
+				this.addSectionTitle(`LOT ${lot.lotNumber}: ${lot.lotTitle}`);
+			} else {
+				this.addSectionTitle('AVALUACIÓ DETALLADA PER CRITERIS');
+			}
+
+			if (!lot.hasProposal) {
+				// No proposal for this lot
+				this.doc.setFillColor(255, 243, 205);
+				this.doc.rect(
+					this.margin,
+					this.currentY - 2.5,
+					this.contentWidth,
+					20,
+					'F',
+				);
+
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(133, 100, 4);
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.text(
+					`No s'ha presentat proposta per aquest lot`,
+					this.margin + 5,
+					this.currentY + 5,
+				);
+				this.currentY += 25;
+				return;
+			}
+
+			// Lot summary
+			if (hasMultipleLots) {
+				this.checkPageBreak(25);
+				this.doc.setFillColor(248, 249, 250);
+				this.doc.rect(
+					this.margin,
+					this.currentY - 2.5,
+					this.contentWidth,
+					25,
+					'F',
+				);
+
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(60, 60, 60);
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.text('Resum del Lot:', this.margin + 5, this.currentY + 5);
+				this.currentY += 8;
+
+				this.doc.setFont('helvetica', 'normal');
+				const lotSummaryHeight = this.addWrappedText(
+					lot.summary,
+					this.margin + 5,
+					this.currentY,
+					this.contentWidth - 10,
+				);
+				this.currentY += lotSummaryHeight + 10;
+			}
+
+			// Extracted criteria for this lot
+			if (lot.criteria.length > 0) {
+				this.checkPageBreak(30);
+
+				if (hasMultipleLots) {
+					this.addSubSectionTitle('Criteris Identificats');
+				} else {
+					this.addSubSectionTitle('CRITERIS IDENTIFICATS');
+				}
+
+				this.doc.setFontSize(9);
+				this.doc.setTextColor(60, 60, 60);
+				this.doc.setFont('helvetica', 'normal');
+
+				lot.criteria.forEach((criterion) => {
+					this.checkPageBreak(8);
+					this.doc.text(
+						`• ${criterion.criterion}`,
+						this.margin + 5,
+						this.currentY,
+					);
+					this.currentY += 5;
+				});
+
+				this.currentY += 10;
+			}
+
+			// Criteria evaluation
+			if (hasMultipleLots) {
+				this.addSubSectionTitle('Avaluació per Criteris');
+			}
+
+			lot.criteria.forEach((criterion, criterionIndex) => {
+				this.checkPageBreak(80);
+				this.addCriterionEvaluation(criterion, criterionIndex + 1);
+			});
+
+			// Lot recommendation
+			if (hasMultipleLots) {
+				this.checkPageBreak(25);
+				this.doc.setFillColor(255, 243, 205);
+				this.doc.rect(
+					this.margin,
+					this.currentY - 2.5,
+					this.contentWidth,
+					30,
+					'F',
+				);
+
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(133, 100, 4);
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.text(
+					`Recomanació per Lot ${lot.lotNumber}:`,
+					this.margin + 5,
+					this.currentY + 5,
+				);
+				this.currentY += 8;
+
+				this.doc.setFont('helvetica', 'normal');
+				const recHeight = this.addWrappedText(
+					lot.recommendation,
+					this.margin + 5,
+					this.currentY,
+					this.contentWidth - 10,
+				);
+				this.currentY += recHeight + 15;
+			}
 		});
 	}
 
 	private addCriterionEvaluation(criterion: any, index: number): void {
-		// Título del criterio en negro
+		// Criterion title
 		this.doc.setFontSize(12);
-		this.doc.setTextColor(0, 0, 0); // Negro en lugar de verde
+		this.doc.setTextColor(0, 0, 0);
 		this.doc.setFont('helvetica', 'bold');
 		const criterionTitle = `${index}. ${criterion.criterion}`;
 		const titleHeight = this.addWrappedText(
 			criterionTitle,
 			this.margin,
 			this.currentY,
-			this.contentWidth, // Usar todo el ancho disponible
+			this.contentWidth,
 		);
+		this.currentY += titleHeight + 5;
 
-		this.currentY += titleHeight + 5; // Mover hacia abajo después del título
-
-		// Calificación debajo del título en negro
-		const scoreColors = {
-			COMPLEIX_EXITOSAMENT: [0, 0, 0], // Negro
-			REGULAR: [0, 0, 0], // Negro
-			INSUFICIENT: [0, 0, 0], // Negro
-		};
-
+		// Score
 		const scoreTexts = {
 			COMPLEIX_EXITOSAMENT: 'Compleix exitosament',
 			REGULAR: 'Regular',
@@ -279,17 +392,16 @@ export class PDFGeneratorService {
 		};
 
 		this.doc.setFontSize(10);
-		const [r, g, b] = scoreColors[criterion.score as keyof typeof scoreColors];
-		this.doc.setTextColor(r, g, b);
+		this.doc.setTextColor(0, 0, 0);
 		this.doc.setFont('helvetica', 'bold');
 		this.doc.text(
 			`Puntuació: ${scoreTexts[criterion.score as keyof typeof scoreTexts]}`,
 			this.margin,
-			this.currentY, // Debajo del título, no a la derecha
+			this.currentY,
 		);
+		this.currentY += 10;
 
-		this.currentY += 10; // Espacio después de la puntuación
-
+		// Justification
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'bold');
@@ -305,13 +417,14 @@ export class PDFGeneratorService {
 		);
 		this.currentY += justificationHeight + 8;
 
+		// Strengths
 		if (criterion.strengths.length > 0) {
 			this.checkPageBreak(20 + criterion.strengths.length * 5);
 
 			this.doc.setFontSize(10);
 			this.doc.setTextColor(25, 152, 117);
 			this.doc.setFont('helvetica', 'bold');
-			this.doc.text('Punts Forts (Pros):', this.margin, this.currentY);
+			this.doc.text('Punts Forts:', this.margin, this.currentY);
 			this.currentY += 5;
 
 			this.doc.setFontSize(9);
@@ -332,13 +445,14 @@ export class PDFGeneratorService {
 			this.currentY += 5;
 		}
 
+		// Improvements
 		if (criterion.improvements.length > 0) {
 			this.checkPageBreak(20 + criterion.improvements.length * 5);
 
 			this.doc.setFontSize(10);
 			this.doc.setTextColor(220, 38, 38);
 			this.doc.setFont('helvetica', 'bold');
-			this.doc.text('Àrees de Millora (Contras):', this.margin, this.currentY);
+			this.doc.text('Àrees de Millora:', this.margin, this.currentY);
 			this.currentY += 5;
 
 			this.doc.setFontSize(9);
@@ -359,6 +473,7 @@ export class PDFGeneratorService {
 			this.currentY += 5;
 		}
 
+		// References
 		if (criterion.references.length > 0) {
 			this.checkPageBreak(15);
 
@@ -375,6 +490,7 @@ export class PDFGeneratorService {
 			this.currentY += referencesHeight;
 		}
 
+		// Separator line
 		this.doc.setDrawColor(200, 200, 200);
 		this.doc.setLineWidth(0.5);
 		this.doc.line(
@@ -386,7 +502,7 @@ export class PDFGeneratorService {
 		this.currentY += 15;
 	}
 
-	private addFinalRecommendation(recommendation: string): void {
+	private addOverallRecommendation(evaluationResult: EvaluationResult): void {
 		this.checkPageBreak(25);
 		this.addSectionTitle('RECOMANACIÓ FINAL');
 
@@ -397,7 +513,7 @@ export class PDFGeneratorService {
 		this.doc.setTextColor(133, 100, 4);
 		this.doc.setFont('helvetica', 'normal');
 		this.addWrappedText(
-			recommendation,
+			evaluationResult.overallRecommendation,
 			this.margin + 5,
 			this.currentY + 5,
 			this.contentWidth - 10,

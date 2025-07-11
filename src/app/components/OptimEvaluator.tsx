@@ -1,15 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
 import Header from './Header';
 import BasicInfoForm from './BasicInfoForm';
 import FileUploadSection from './FileUploadSection';
+import ProposalUploadSection from './ProposalUploadSection';
 import EvaluationControl from './EvaluationControl';
 import EvaluationResults from './EvaluationResults';
 import { apiService } from '@/lib/apiService';
 import { PDFGeneratorService } from '@/lib/pdfGenerator';
-import type { FileWithContent, EvaluationResult, BasicInfo } from '@/types';
+import type {
+	FileWithContent,
+	EvaluationResult,
+	BasicInfo,
+	ProposalFile,
+	LotInfo,
+} from '@/types';
 
 export default function OptimEvaluator() {
 	const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -22,12 +29,53 @@ export default function OptimEvaluator() {
 	const [specificationFiles, setSpecificationFiles] = useState<
 		FileWithContent[]
 	>([]);
-	const [proposalFiles, setProposalFiles] = useState<FileWithContent[]>([]);
+	const [proposalFiles, setProposalFiles] = useState<ProposalFile[]>([]);
+	const [extractedLots, setExtractedLots] = useState<LotInfo[]>([
+		{ lotNumber: 1, title: 'Lot Únic' },
+	]);
 	const [isEvaluating, setIsEvaluating] = useState(false);
 	const [evaluationResult, setEvaluationResult] =
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
+
+	// Extract lots when specification files change
+	useEffect(() => {
+		const extractLots = async () => {
+			if (specificationFiles.length === 0) {
+				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
+				return;
+			}
+
+			try {
+				setEvaluationStatus('Extraient informació dels lors...');
+
+				const specifications = specificationFiles.map((file) => ({
+					name: file.name,
+					content: file.content,
+					type: 'specification' as const,
+				}));
+
+				const lots = await apiService.extractLots(specifications);
+
+				if (lots.length > 0) {
+					setExtractedLots(lots);
+					// Reset proposal files when lots change
+					setProposalFiles([]);
+				} else {
+					setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
+				}
+
+				setEvaluationStatus('');
+			} catch (err) {
+				console.error('Error extracting lots:', err);
+				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
+				setEvaluationStatus('');
+			}
+		};
+
+		extractLots();
+	}, [specificationFiles]);
 
 	const handleEvaluate = async () => {
 		if (
@@ -57,12 +105,14 @@ export default function OptimEvaluator() {
 				name: file.name,
 				content: file.content,
 				type: 'proposal' as const,
+				lotNumber: file.lotNumber,
 			}));
 
-			setEvaluationStatus("Extraient criteris d'avaluació...");
-			const result = await apiService.evaluateProposal(
+			setEvaluationStatus('Avaluant propostes per lots...');
+			const result = await apiService.evaluateProposalWithLots(
 				specifications,
 				proposals,
+				extractedLots,
 			);
 
 			setEvaluationResult(result);
@@ -123,12 +173,10 @@ export default function OptimEvaluator() {
 										icon="spec"
 									/>
 
-									<FileUploadSection
-										title="Proposta a Avaluar *"
-										description="PDF, DOC, DOCX - Màxim 10MB"
-										files={proposalFiles}
-										setFiles={setProposalFiles}
-										icon="proposal"
+									<ProposalUploadSection
+										extractedLots={extractedLots}
+										proposalFiles={proposalFiles}
+										setProposalFiles={setProposalFiles}
 									/>
 								</div>
 							</div>
