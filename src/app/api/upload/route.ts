@@ -1,6 +1,8 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
+import FormData from 'form-data';
+import axios from 'axios';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const SUPPORTED_TYPES = [
@@ -9,6 +11,9 @@ const SUPPORTED_TYPES = [
 	'application/msword',
 	'text/plain',
 ];
+
+// API Key de PDFRest
+const PDFREST_API_KEY = '0d040095-68ab-41e7-a0f8-3c9dca8b2756';
 
 interface ProcessedFile {
 	name: string;
@@ -42,6 +47,8 @@ export async function POST(request: NextRequest) {
 
 		for (const file of files) {
 			try {
+				console.log(`📄 Procesando archivo: ${file.name}`);
+
 				// Validar archivo
 				if (file.size > MAX_FILE_SIZE) {
 					processedFiles.push({
@@ -72,19 +79,18 @@ export async function POST(request: NextRequest) {
 				let content = '';
 
 				if (file.type === 'application/pdf') {
-					// Usar extracción básica para PDF temporalmente
-					content = await extractPDFTextBasic(buffer, file.name);
+					console.log(`🔄 Extrayendo texto de PDF con PDFRest: ${file.name}`);
+					content = await extractPDFWithPDFRest(buffer, file.name);
 
 					if (!content || content.trim().length < 50) {
-						// Si la extracción básica falla, crear un placeholder útil
-						content = generatePDFPlaceholder(file);
+						throw new Error('No se pudo extraer texto suficiente del PDF');
 					}
 				} else if (
 					file.type.includes('word') ||
 					file.name.endsWith('.docx') ||
 					file.name.endsWith('.doc')
 				) {
-					// Procesar documentos Word
+					console.log(`📝 Procesando documento Word: ${file.name}`);
 					const result = await mammoth.extractRawText({ buffer });
 					content = result.value;
 
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
 						throw new Error('Documento Word vacío o sin contenido legible');
 					}
 				} else if (file.type === 'text/plain') {
-					// Procesar archivo de texto
+					console.log(`📄 Procesando archivo de texto: ${file.name}`);
 					content = buffer.toString('utf-8');
 
 					if (!content || content.trim().length < 10) {
@@ -116,23 +122,13 @@ export async function POST(request: NextRequest) {
 			} catch (error) {
 				console.error(`❌ Error procesando ${file.name}:`, error);
 
-				// Para PDFs problemáticos, crear un placeholder en lugar de fallar
-				if (file.type === 'application/pdf') {
-					processedFiles.push({
-						name: file.name,
-						content: generatePDFPlaceholder(file),
-						type,
-						success: true, // Marcamos como éxito porque tenemos contenido placeholder
-					});
-				} else {
-					processedFiles.push({
-						name: file.name,
-						content: '',
-						type,
-						success: false,
-						error: error instanceof Error ? error.message : 'Error desconocido',
-					});
-				}
+				processedFiles.push({
+					name: file.name,
+					content: '',
+					type,
+					success: false,
+					error: error instanceof Error ? error.message : 'Error desconocido',
+				});
 			}
 		}
 
@@ -157,114 +153,107 @@ export async function POST(request: NextRequest) {
 	}
 }
 
-// Extracción básica de PDF usando técnicas de parsing de texto
-async function extractPDFTextBasic(
+// Función para extraer texto de PDF usando PDFRest API
+async function extractPDFWithPDFRest(
 	buffer: Buffer,
 	filename: string,
 ): Promise<string> {
 	try {
-		// Convertir buffer a string y buscar patrones de texto
-		const pdfString = buffer.toString('binary');
+		console.log(`🌐 Enviando ${filename} a PDFRest API...`);
 
-		// Buscar streams de texto en el PDF
-		const textStreams: string[] = [];
+		// Crear FormData para enviar a PDFRest
+		const formData = new FormData();
+		formData.append('file', buffer, {
+			filename: filename,
+			contentType: 'application/pdf',
+		});
+		formData.append('word_style', 'on');
 
-		// Patrón para encontrar streams de contenido
-		const streamRegex = /stream\s*([\s\S]*?)\s*endstream/gi;
-		let match;
+		// Configurar la petición a PDFRest
+		const config = {
+			method: 'post' as const,
+			maxBodyLength: Infinity,
+			url: 'https://api.pdfrest.com/extracted-text',
+			headers: {
+				'Api-Key': PDFREST_API_KEY,
+				...formData.getHeaders(),
+			},
+			data: formData,
+			timeout: 30000, // 30 segundos timeout
+		};
 
-		while ((match = streamRegex.exec(pdfString)) !== null) {
-			const streamContent = match[1];
+		// Realizar la petición
+		const response = await axios(config);
 
-			// Buscar texto decodificable en el stream
-			const textRegex = /\((.*?)\)/g;
-			let textMatch;
+		console.log(`📥 Respuesta de PDFRest recibida para ${filename}`);
 
-			while ((textMatch = textRegex.exec(streamContent)) !== null) {
-				const text = textMatch[1];
-				if (text && text.length > 2) {
-					textStreams.push(text);
-				}
-			}
-
-			// También buscar texto en formato Tj
-			const tjRegex = /\[(.*?)\]\s*TJ/g;
-			while ((textMatch = tjRegex.exec(streamContent)) !== null) {
-				const text = textMatch[1].replace(/[()]/g, '');
-				if (text && text.length > 2) {
-					textStreams.push(text);
-				}
-			}
+		// Verificar la respuesta
+		if (!response.data) {
+			throw new Error('Respuesta vacía de PDFRest API');
 		}
 
-		// Buscar texto directo en formato (text)
-		const directTextRegex = /\(([^)]{3,})\)/g;
-		while ((match = directTextRegex.exec(pdfString)) !== null) {
-			const text = match[1];
-			if (text && text.length > 2 && !text.includes('/x')) {
-				textStreams.push(text);
-			}
+		// Extraer el texto de la respuesta
+		let extractedText = '';
+
+		if (response.data.fullText) {
+			extractedText = response.data.fullText.replaceAll(
+				'[pdfRest Free Demo]',
+				'',
+			);
+		} else {
+			// Si la estructura es diferente, intentar encontrar el texto
+			const dataStr = JSON.stringify(response.data);
+			console.log(`🔍 Estructura de respuesta PDFRest:`, response.data);
+			throw new Error(
+				`No se encontró texto en la respuesta de PDFRest. Estructura: ${dataStr.substring(
+					0,
+					200,
+				)}...`,
+			);
 		}
 
-		// Combinar y limpiar texto encontrado
-		let extractedText = textStreams.join(' ');
-
-		// Decodificar caracteres especiales comunes
-		extractedText = extractedText
-			.replace(/\\n/g, '\n')
-			.replace(/\\r/g, '\r')
-			.replace(/\\t/g, '\t')
-			.replace(/\\\(/g, '(')
-			.replace(/\\\)/g, ')')
-			.replace(/\\\\/g, '\\');
+		if (!extractedText || extractedText.trim().length < 10) {
+			throw new Error('PDFRest no pudo extraer texto suficiente del PDF');
+		}
 
 		console.log(
-			`📄 Extracción básica de PDF ${filename}: ${extractedText.length} caracteres`,
+			`✅ Texto extraído exitosamente de ${filename}: ${extractedText.length} caracteres`,
 		);
 
 		return extractedText;
 	} catch (error) {
-		console.error(`Error en extracción básica de PDF ${filename}:`, error);
-		return '';
+		console.error(`❌ Error con PDFRest API para ${filename}:`, error);
+
+		// Si es un error de axios, obtener más detalles
+		if (axios.isAxiosError(error)) {
+			const status = error.response?.status;
+			const statusText = error.response?.statusText;
+			const data = error.response?.data;
+
+			console.error(
+				`PDFRest API Error - Status: ${status}, StatusText: ${statusText}`,
+				data,
+			);
+
+			if (status === 401) {
+				throw new Error('API Key de PDFRest inválida o no autorizada');
+			} else if (status === 413) {
+				throw new Error('Archivo PDF demasiado grande para PDFRest API');
+			} else if (status === 422) {
+				throw new Error('Archivo PDF corrupto o no válido');
+			} else if (status === 429) {
+				throw new Error('Límite de rate de PDFRest API excedido');
+			} else {
+				throw new Error(
+					`Error de PDFRest API: ${status} - ${
+						statusText || 'Error desconocido'
+					}`,
+				);
+			}
+		}
+
+		throw error;
 	}
-}
-
-// Generar placeholder informativo para PDFs
-function generatePDFPlaceholder(file: File): string {
-	return `[PDF: ${file.name}]
-
-📄 INFORMACIÓN DEL ARCHIVO PDF
-- Nombre: ${file.name}
-- Tamaño: ${formatFileSize(file.size)}
-- Fecha de procesamiento: ${new Date().toLocaleString('es-ES')}
-
-⚠️ NOTA IMPORTANTE: 
-Este PDF se ha detectado pero no se pudo extraer automáticamente todo su contenido de texto.
-
-🔧 RECOMENDACIONES PARA EL USUARIO:
-1. Abre el PDF manualmente y copia el texto relevante
-2. Pégalo en un archivo .txt y súbelo de nuevo
-3. O incluye la información clave en el campo "Contexto Adicional" del formulario
-
-📋 INFORMACIÓN QUE DEBERÍAS INCLUIR MANUALMENTE:
-- Criterios de evaluación específicos
-- Requisitos técnicos principales
-- Metodología de puntuación
-- Cualquier tabla o lista importante del documento
-
-💡 CONSEJO: 
-La aplicación puede continuar funcionando con esta información como base, 
-pero será más precisa si incluyes manualmente el contenido clave del PDF.
-
-🎯 PARA MEJORES RESULTADOS:
-Busca en el PDF secciones como:
-- "Criterios de evaluación"
-- "Puntuación"
-- "Requisitos técnicos"
-- "Metodología de evaluación"
-- "Anexos con criterios"
-
-Y copia ese contenido en el campo de contexto adicional.`;
 }
 
 // Función para limpiar y normalizar texto
@@ -276,7 +265,7 @@ function cleanTextContent(text: string): string {
 			.replace(/\r/g, '\n')
 			.replace(/\n{3,}/g, '\n\n')
 			.replace(/[ \t]+/g, ' ')
-			// Eliminar caracteres de control
+			// Eliminar caracteres de control excepto los básicos
 			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
 			// Limpiar caracteres especiales mal decodificados
 			.replace(/�/g, '')

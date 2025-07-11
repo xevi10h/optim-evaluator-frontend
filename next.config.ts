@@ -1,11 +1,8 @@
-// next.config.ts
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
 	webpack: (config, { isServer, dev }) => {
-		// Configuraciones solo para el cliente
 		if (!isServer) {
-			// Configuración para PDF.js y librerías problemáticas
 			config.resolve.fallback = {
 				...config.resolve.fallback,
 				fs: false,
@@ -14,14 +11,12 @@ const nextConfig: NextConfig = {
 				encoding: false,
 			};
 
-			// Ignorar warnings de PDF.js y librerías similares
 			config.ignoreWarnings = [
 				{ module: /node_modules\/pdfjs-dist/ },
 				{ message: /Failed to parse source map/ },
 				{ message: /Critical dependency/ },
 			];
 
-			// Optimizaciones para PDF.js
 			config.module.rules.push({
 				test: /pdf\.worker\.(min\.)?js/,
 				type: 'asset/resource',
@@ -30,14 +25,12 @@ const nextConfig: NextConfig = {
 				},
 			});
 
-			// Configurar aliases para evitar problemas de importación
 			config.resolve.alias = {
 				...config.resolve.alias,
 				'pdfjs-dist/build/pdf.worker.js': 'pdfjs-dist/build/pdf.worker.min.js',
 			};
 		}
 
-		// Optimizaciones para librerías externas
 		config.externals = config.externals || [];
 		if (!isServer) {
 			config.externals.push({
@@ -49,7 +42,6 @@ const nextConfig: NextConfig = {
 		return config;
 	},
 
-	// Headers para mejor compatibilidad con workers y recursos externos
 	async headers() {
 		return [
 			{
@@ -89,15 +81,12 @@ const nextConfig: NextConfig = {
 		];
 	},
 
-	// Configuración experimental para mejor performance
 	experimental: {
 		optimizePackageImports: ['lucide-react', 'pdfjs-dist'],
 	},
 
-	// Configurar transpilación de librerías problemáticas
 	transpilePackages: ['pdfjs-dist'],
 
-	// Configuración de imágenes si necesitas
 	images: {
 		domains: ['cdnjs.cloudflare.com'],
 	},
