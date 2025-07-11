@@ -1,5 +1,5 @@
 {
-	"name": "optim-evaluator",
+	"name": "optim-evaluator-frontend",
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
