@@ -1,15 +1,14 @@
-// src/app/components/OptimEvaluator.tsx - VERSIÓN LIMPIA
 'use client';
 
 import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
-import jsPDF from 'jspdf';
 import Header from './Header';
 import BasicInfoForm from './BasicInfoForm';
 import FileUploadSection from './FileUploadSection';
 import EvaluationControl from './EvaluationControl';
 import EvaluationResults from './EvaluationResults';
 import { apiService } from '@/lib/apiService';
+import { PDFGeneratorService } from '@/lib/pdfGenerator';
 import type { FileWithContent, EvaluationResult, BasicInfo } from '@/types';
 
 export default function OptimEvaluator() {
@@ -48,7 +47,6 @@ export default function OptimEvaluator() {
 		try {
 			setEvaluationStatus('Connectant amb el servidor...');
 
-			// Convertir archivos al formato esperado por el backend
 			const specifications = specificationFiles.map((file) => ({
 				name: file.name,
 				content: file.content,
@@ -84,47 +82,11 @@ export default function OptimEvaluator() {
 	const generatePDF = () => {
 		if (!evaluationResult) return;
 
-		const doc = new jsPDF();
-		const pageWidth = doc.internal.pageSize.getWidth();
-		const pageHeight = doc.internal.pageSize.getHeight();
-		const margin = 20;
-
-		doc.setFont('helvetica');
-
-		// Header
-		doc.setFontSize(24);
-		doc.setTextColor(25, 152, 117);
-		doc.text("INFORME D'AVALUACIÓ", pageWidth / 2, 40, { align: 'center' });
-		doc.text('DE PROPOSTA DE LICITACIÓ', pageWidth / 2, 55, {
-			align: 'center',
-		});
-
-		// Info básica
-		doc.setFontSize(12);
-		doc.setTextColor(60, 60, 60);
-		doc.text(`Títol: ${basicInfo.title}`, margin, 80);
-		doc.text(`Expedient: ${basicInfo.expedient}`, margin, 95);
-		doc.text(`Entitat: ${basicInfo.entity}`, margin, 110);
-		doc.text(`Data: ${new Date().toLocaleDateString('ca-ES')}`, margin, 125);
-		doc.text(
-			`Confiança de l'avaluació: ${Math.round(
-				evaluationResult.confidence * 100,
-			)}%`,
-			margin,
-			140,
-		);
-
-		// Continuar con el resto del PDF como antes...
-		// [El resto del código del PDF permanece igual]
-
-		doc.save(
-			`avaluacio_${basicInfo.expedient}_${
-				new Date().toISOString().split('T')[0]
-			}.pdf`,
-		);
+		const pdfGenerator = new PDFGeneratorService();
+		pdfGenerator.generateEvaluationReport(evaluationResult, basicInfo);
 	};
 
-	const isProcessing = false; // Ya no hay procesamiento local
+	const isProcessing = false;
 
 	return (
 		<div
