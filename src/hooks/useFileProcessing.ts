@@ -1,25 +1,24 @@
 import { useState, useCallback } from 'react';
+import { apiService } from '@/lib/apiService';
 import type { FileWithContent, ProcessingState } from '@/types';
+
+interface ProcessedFile {
+	name: string;
+	content: string;
+	type: 'specification' | 'proposal';
+	success: boolean;
+	extractedLength?: number;
+	error?: string;
+}
 
 interface UploadResponse {
 	success: boolean;
-	files: Array<{
-		name: string;
-		content: string;
-		type: 'specification' | 'proposal';
-		success: boolean;
-		extractedLength?: number;
-		requiresManualInput?: boolean;
-		error?: string;
-	}>;
+	files: ProcessedFile[];
 	summary: {
 		total: number;
-		successful?: number;
-		processed?: number;
+		successful: number;
 		failed: number;
-		requireManualInput?: number;
 	};
-	error?: string;
 }
 
 export function useFileProcessing() {
@@ -43,46 +42,31 @@ export function useFileProcessing() {
 			});
 
 			try {
-				const formData = new FormData();
-
-				files.forEach((file) => {
-					formData.append('files', file);
-				});
-
-				formData.append('type', type);
-
 				setState((prev) => ({
 					...prev,
 					progress: 25,
-					currentFile: `Pujant ${files.length} arxiu(s)...`,
+					currentFile: `Enviando ${files.length} archivo(s) al servidor...`,
 				}));
 
-				const response = await fetch('/api/upload', {
-					method: 'POST',
-					body: formData,
-				});
+				// Usar el nuevo servicio API
+				const result: UploadResponse = await apiService.uploadFiles(
+					files,
+					type,
+				);
 
 				setState((prev) => ({
 					...prev,
 					progress: 75,
-					currentFile: 'Processant arxius...',
+					currentFile: 'Procesando respuesta del servidor...',
 				}));
-
-				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(
-						errorData.error || `Error del servidor: ${response.status}`,
-					);
-				}
-
-				const result: UploadResponse = await response.json();
 
 				setState((prev) => ({
 					...prev,
 					progress: 100,
-					currentFile: 'Completat',
+					currentFile: 'Completado',
 				}));
 
+				// Convertir los archivos procesados al formato esperado por el frontend
 				const processedFiles: FileWithContent[] = result.files
 					.filter((file) => file.success)
 					.map((file) => ({
@@ -91,22 +75,13 @@ export function useFileProcessing() {
 						name: file.name,
 					}));
 
-				const manualFiles = result.files.filter(
-					(file) => file.requiresManualInput,
-				);
+				// Manejar archivos fallidos
 				const failedFiles = result.files.filter((file) => !file.success);
 
 				let errorMessage = '';
 
-				if (manualFiles.length > 0) {
-					errorMessage += `📋 ${manualFiles.length} arxiu(s) requereixen processament manual:\n`;
-					errorMessage += manualFiles.map((f) => `- ${f.name}`).join('\n');
-					errorMessage += '\nRevisa les instruccions en el contingut extret.';
-				}
-
 				if (failedFiles.length > 0) {
-					if (errorMessage) errorMessage += '\n\n';
-					errorMessage += `❌ ${failedFiles.length} arxiu(s) no s'han pogut processar:\n`;
+					errorMessage += `❌ ${failedFiles.length} archivo(s) no se pudieron procesar:\n`;
 					errorMessage += failedFiles
 						.map((f) => `- ${f.name}: ${f.error}`)
 						.join('\n');
@@ -120,19 +95,19 @@ export function useFileProcessing() {
 				}
 
 				console.log(
-					`✅ Processats ${processedFiles.length}/${files.length} arxius correctament`,
+					`✅ Procesados ${processedFiles.length}/${files.length} archivos correctamente`,
 				);
 
 				return processedFiles;
 			} catch (error) {
 				const errorMessage =
-					error instanceof Error ? error.message : 'Error desconegut';
-				console.error('❌ Error en el processament:', errorMessage);
+					error instanceof Error ? error.message : 'Error desconocido';
+				console.error('❌ Error en el procesamiento:', errorMessage);
 
 				setState({
 					isProcessing: false,
 					currentFile: null,
-					error: `Error processant arxius: ${errorMessage}`,
+					error: `Error procesando archivos: ${errorMessage}`,
 					progress: 0,
 				});
 				throw error;
@@ -171,6 +146,7 @@ export function useFileProcessing() {
 	};
 }
 
+// Mantener el hook de drag and drop sin cambios
 export function useDragAndDrop() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragCounter, setDragCounter] = useState(0);
@@ -226,7 +202,7 @@ export function useDragAndDrop() {
 			});
 
 			if (supportedFiles.length === 0) {
-				console.warn("No s'han trobat arxius suportats");
+				console.warn('No se han encontrado archivos soportados');
 				return;
 			}
 
