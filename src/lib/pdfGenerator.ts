@@ -24,10 +24,26 @@ export class PDFGeneratorService {
 		this.currentY = 90;
 
 		this.addGeneralInfo(basicInfo, evaluationResult);
-		this.addOverallSummary(evaluationResult);
-		this.addLotsEvaluation(evaluationResult);
-		this.addOverallRecommendation(evaluationResult);
 
+		// Only add overall summary if it exists and has content
+		if (
+			evaluationResult.overallSummary &&
+			evaluationResult.overallSummary.trim()
+		) {
+			this.addOverallSummary(evaluationResult);
+		}
+
+		this.addLotsEvaluation(evaluationResult);
+
+		// Only add overall recommendation if it exists and has content
+		if (
+			evaluationResult.overallRecommendation &&
+			evaluationResult.overallRecommendation.trim()
+		) {
+			this.addOverallRecommendation(evaluationResult);
+		}
+
+		// Add footer only at the very end
 		this.addFooter();
 
 		const fileName = `avaluacio_${basicInfo.expedient}_${
@@ -37,7 +53,8 @@ export class PDFGeneratorService {
 	}
 
 	private checkPageBreak(requiredSpace: number): void {
-		if (this.currentY + requiredSpace > this.pageHeight - 40) {
+		if (this.currentY + requiredSpace > this.pageHeight - 50) {
+			// Increased margin for footer
 			this.addFooter();
 			this.doc.addPage();
 			this.addSmallHeader();
@@ -271,32 +288,28 @@ export class PDFGeneratorService {
 				return;
 			}
 
-			// Lot summary
+			// Lot summary - Simplified without background box
 			if (hasMultipleLots) {
-				this.checkPageBreak(25);
-				this.doc.setFillColor(248, 249, 250);
-				this.doc.rect(
-					this.margin,
-					this.currentY - 2.5,
-					this.contentWidth,
-					25,
-					'F',
-				);
+				this.checkPageBreak(20);
 
+				// Add title first with proper spacing
 				this.doc.setFontSize(10);
 				this.doc.setTextColor(60, 60, 60);
 				this.doc.setFont('helvetica', 'bold');
-				this.doc.text('Resum del Lot:', this.margin + 5, this.currentY + 5);
-				this.currentY += 8;
+				this.doc.text('Resum del Lot:', this.margin, this.currentY);
+				this.currentY += 8; // Spacing after title
 
+				// Add the content directly without background box
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(60, 60, 60);
 				this.doc.setFont('helvetica', 'normal');
-				const lotSummaryHeight = this.addWrappedText(
+				const contentHeight = this.addWrappedText(
 					lot.summary,
-					this.margin + 5,
+					this.margin,
 					this.currentY,
-					this.contentWidth - 10,
+					this.contentWidth,
 				);
-				this.currentY += lotSummaryHeight + 10;
+				this.currentY += contentHeight + 10; // Small margin after content
 			}
 
 			// Extracted criteria for this lot
@@ -309,18 +322,23 @@ export class PDFGeneratorService {
 					this.addSubSectionTitle('CRITERIS IDENTIFICATS');
 				}
 
-				this.doc.setFontSize(9);
-				this.doc.setTextColor(60, 60, 60);
-				this.doc.setFont('helvetica', 'normal');
-
 				lot.criteria.forEach((criterion) => {
 					this.checkPageBreak(8);
-					this.doc.text(
+
+					// Ensure consistent formatting for criteria items
+					this.doc.setFontSize(9);
+					this.doc.setTextColor(60, 60, 60);
+					this.doc.setFont('helvetica', 'normal');
+
+					// Use wrapped text to handle long criteria properly
+					const criteriaHeight = this.addWrappedText(
 						`• ${criterion.criterion}`,
 						this.margin + 5,
 						this.currentY,
+						this.contentWidth - 10, // Leave margin for bullet point
+						5,
 					);
-					this.currentY += 5;
+					this.currentY += Math.max(5, criteriaHeight);
 				});
 
 				this.currentY += 10;
@@ -336,36 +354,54 @@ export class PDFGeneratorService {
 				this.addCriterionEvaluation(criterion, criterionIndex + 1);
 			});
 
-			// Lot recommendation
+			// Lot recommendation - Simplified without background box
 			if (hasMultipleLots) {
-				this.checkPageBreak(25);
-				this.doc.setFillColor(255, 243, 205);
-				this.doc.rect(
-					this.margin,
-					this.currentY - 2.5,
-					this.contentWidth,
-					30,
-					'F',
-				);
+				this.checkPageBreak(30);
 
-				this.doc.setFontSize(10);
-				this.doc.setTextColor(133, 100, 4);
+				// Add title first with proper spacing
+				this.doc.setFontSize(12);
+				this.doc.setTextColor(3, 105, 161);
 				this.doc.setFont('helvetica', 'bold');
 				this.doc.text(
-					`Recomanació per Lot ${lot.lotNumber}:`,
-					this.margin + 5,
-					this.currentY + 5,
-				);
-				this.currentY += 8;
-
-				this.doc.setFont('helvetica', 'normal');
-				const recHeight = this.addWrappedText(
-					lot.recommendation,
-					this.margin + 5,
+					`Anàlisi per Lot ${lot.lotNumber}:`,
+					this.margin,
 					this.currentY,
-					this.contentWidth - 10,
 				);
-				this.currentY += recHeight + 15;
+				this.currentY += 10; // Spacing after title
+
+				// Add the content directly without background box
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(3, 105, 161);
+				this.doc.setFont('helvetica', 'normal');
+				const contentHeight = this.addWrappedText(
+					lot.recommendation,
+					this.margin,
+					this.currentY,
+					this.contentWidth,
+				);
+				this.currentY += contentHeight + 10; // Small margin after content
+			} else {
+				// For single lot, add recommendation at the end
+				this.checkPageBreak(30);
+
+				// Add title first with proper spacing
+				this.doc.setFontSize(12);
+				this.doc.setTextColor(3, 105, 161);
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.text('Anàlisi de la Proposta:', this.margin, this.currentY);
+				this.currentY += 10; // Spacing after title
+
+				// Add the content directly without background box
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(3, 105, 161);
+				this.doc.setFont('helvetica', 'normal');
+				const contentHeight = this.addWrappedText(
+					lot.recommendation,
+					this.margin,
+					this.currentY,
+					this.contentWidth,
+				);
+				this.currentY += contentHeight + 10; // Small margin after content
 			}
 		});
 	}
@@ -475,7 +511,7 @@ export class PDFGeneratorService {
 
 		// References
 		if (criterion.references.length > 0) {
-			this.checkPageBreak(15);
+			this.checkPageBreak(20); // Increased space check
 
 			this.doc.setFontSize(9);
 			this.doc.setTextColor(100, 100, 100);
@@ -491,6 +527,7 @@ export class PDFGeneratorService {
 		}
 
 		// Separator line
+		this.checkPageBreak(15); // Check space before adding separator
 		this.doc.setDrawColor(200, 200, 200);
 		this.doc.setLineWidth(0.5);
 		this.doc.line(
@@ -503,20 +540,33 @@ export class PDFGeneratorService {
 	}
 
 	private addOverallRecommendation(evaluationResult: EvaluationResult): void {
-		this.checkPageBreak(25);
-		this.addSectionTitle('RECOMANACIÓ FINAL');
+		this.checkPageBreak(50); // Increased space check for safety
 
-		this.doc.setFillColor(255, 243, 205);
-		this.doc.rect(this.margin, this.currentY - 2.5, this.contentWidth, 30, 'F');
+		// Add title first with proper spacing
+		this.doc.setFontSize(14);
+		this.doc.setTextColor(25, 152, 117);
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text('ANÀLISI GENERAL', this.margin, this.currentY);
+		this.currentY += 12; // Spacing after title
 
+		// Add the content directly without background box
 		this.doc.setFontSize(10);
-		this.doc.setTextColor(133, 100, 4);
+		this.doc.setTextColor(3, 105, 161); // Blue color
 		this.doc.setFont('helvetica', 'normal');
+
+		// Check if we need more space for the content
+		const lines = this.doc.splitTextToSize(
+			evaluationResult.overallRecommendation,
+			this.contentWidth,
+		);
+		const contentHeight = lines.length * 5;
+		this.checkPageBreak(contentHeight + 10);
+
 		this.addWrappedText(
 			evaluationResult.overallRecommendation,
-			this.margin + 5,
-			this.currentY + 5,
-			this.contentWidth - 10,
+			this.margin,
+			this.currentY,
+			this.contentWidth,
 		);
 	}
 }

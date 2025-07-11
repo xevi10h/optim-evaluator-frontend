@@ -41,21 +41,23 @@ export default function EvaluationResults({
 			</div>
 
 			<div className="p-6">
-				{/* Overall Summary */}
-				<div
-					className="rounded-lg p-6 mb-6"
-					style={{ backgroundColor: '#dfe7e6' }}
-				>
-					<h4
-						className="text-lg font-semibold mb-3"
-						style={{ color: '#1c1c1c' }}
+				{/* Overall Summary - Only show if there's content */}
+				{evaluationResult.overallSummary && (
+					<div
+						className="rounded-lg p-6 mb-6"
+						style={{ backgroundColor: '#dfe7e6' }}
 					>
-						Resum General
-					</h4>
-					<p className="leading-relaxed" style={{ color: '#6f6f6f' }}>
-						{evaluationResult.overallSummary}
-					</p>
-				</div>
+						<h4
+							className="text-lg font-semibold mb-3"
+							style={{ color: '#1c1c1c' }}
+						>
+							Resum General
+						</h4>
+						<p className="leading-relaxed" style={{ color: '#6f6f6f' }}>
+							{evaluationResult.overallSummary}
+						</p>
+					</div>
+				)}
 
 				{/* Lots Evaluation */}
 				<div className="space-y-8">
@@ -259,26 +261,32 @@ export default function EvaluationResults({
 										))}
 									</div>
 
-									{/* Lot Recommendation */}
+									{/* Lot Recommendation - Updated to reflect analytical approach */}
 									<div
 										className="rounded-lg p-4 mt-6"
 										style={{
-											backgroundColor: '#fff3cd',
-											borderColor: '#ffeaa7',
+											backgroundColor: '#e8f4fd',
+											borderColor: '#b3d9f2',
+											border: '1px solid',
 										}}
 									>
 										<h6
-											className="text-md font-semibold mb-2"
-											style={{ color: '#856404' }}
+											className="text-md font-semibold mb-2 flex items-center"
+											style={{ color: '#0369a1' }}
 										>
-											Recomanació per Lot {lot.lotNumber}
+											<Package className="h-4 w-4 mr-2" />
+											Anàlisi per Lot {lot.lotNumber}
 										</h6>
-										<p
+										<div
 											className="text-sm leading-relaxed"
-											style={{ color: '#856404' }}
+											style={{ color: '#0369a1' }}
 										>
-											{lot.recommendation}
-										</p>
+											{lot.recommendation.split('\n').map((paragraph, i) => (
+												<p key={i} className={i > 0 ? 'mt-2' : ''}>
+													{paragraph}
+												</p>
+											))}
+										</div>
 									</div>
 								</>
 							)}
@@ -286,21 +294,33 @@ export default function EvaluationResults({
 					))}
 				</div>
 
-				{/* Overall Recommendation */}
-				<div
-					className="rounded-lg p-6 mt-8"
-					style={{ backgroundColor: '#fff3cd', borderColor: '#ffeaa7' }}
-				>
-					<h4
-						className="text-lg font-semibold mb-3"
-						style={{ color: '#856404' }}
+				{/* Overall Recommendation - Only show if there's content */}
+				{evaluationResult.overallRecommendation && (
+					<div
+						className="rounded-lg p-6 mt-8"
+						style={{
+							backgroundColor: '#e8f4fd',
+							borderColor: '#b3d9f2',
+							border: '1px solid',
+						}}
 					>
-						Recomanació Final
-					</h4>
-					<p className="leading-relaxed" style={{ color: '#856404' }}>
-						{evaluationResult.overallRecommendation}
-					</p>
-				</div>
+						<h4
+							className="text-lg font-semibold mb-3"
+							style={{ color: '#0369a1' }}
+						>
+							Anàlisi General
+						</h4>
+						<div className="leading-relaxed" style={{ color: '#0369a1' }}>
+							{evaluationResult.overallRecommendation
+								.split('\n')
+								.map((paragraph, i) => (
+									<p key={i} className={i > 0 ? 'mt-2' : ''}>
+										{paragraph}
+									</p>
+								))}
+						</div>
+					</div>
+				)}
 
 				<div className="flex justify-center mt-8">
 					<button
