@@ -88,31 +88,33 @@ export default function EvaluationResults({
 							className="border rounded-lg p-6"
 							style={{ borderColor: '#dfe7e6' }}
 						>
-							<div className="flex items-start justify-between mb-4">
+							<div className="flex items-start justify-between mb-4 gap-4">
 								<h5
-									className="text-md font-semibold"
+									className="text-md font-semibold flex-1"
 									style={{ color: '#1c1c1c' }}
 								>
 									{index + 1}. {criterion.criterion}
 								</h5>
-								<span
-									className="px-3 py-1 rounded-full text-sm font-medium"
-									style={{
-										backgroundColor:
-											criterion.score === 'COMPLEIX_EXITOSAMENT'
-												? '#199875'
-												: criterion.score === 'REGULAR'
-												? '#f59e0b'
-												: '#dc2626',
-										color: 'white',
-									}}
-								>
-									{criterion.score === 'COMPLEIX_EXITOSAMENT'
-										? '🟢 Compleix exitosament'
-										: criterion.score === 'REGULAR'
-										? '🟡 Regular'
-										: '🔴 Insuficient'}
-								</span>
+								<div className="flex items-center justify-center min-w-[200px] flex-shrink-0">
+									<span
+										className="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap inline-flex items-center"
+										style={{
+											backgroundColor:
+												criterion.score === 'COMPLEIX_EXITOSAMENT'
+													? '#199875'
+													: criterion.score === 'REGULAR'
+													? '#f59e0b'
+													: '#dc2626',
+											color: 'white',
+										}}
+									>
+										{criterion.score === 'COMPLEIX_EXITOSAMENT'
+											? '🟢 Compleix exitosament'
+											: criterion.score === 'REGULAR'
+											? '🟡 Regular'
+											: '🔴 Insuficient'}
+									</span>
+								</div>
 							</div>
 
 							<p className="mb-4" style={{ color: '#6f6f6f' }}>
