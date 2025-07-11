@@ -33,7 +33,6 @@ export default function OptimEvaluator() {
 	const [error, setError] = useState<string | null>(null);
 	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
 
-	// Función para evaluar con la API
 	const evaluateWithAPI = async (): Promise<EvaluationResult> => {
 		const specifications: FileContent[] = specificationFiles.map((file) => ({
 			name: file.name,
@@ -47,7 +46,7 @@ export default function OptimEvaluator() {
 			type: 'proposal' as const,
 		}));
 
-		setEvaluationStatus('Connectant amb la intel·ligència artificial...');
+		setEvaluationStatus('Connectant amb el sistema...');
 
 		const response = await fetch('/api/evaluate', {
 			method: 'POST',
@@ -62,14 +61,13 @@ export default function OptimEvaluator() {
 
 		if (!response.ok) {
 			const errorData = await response.json();
-			throw new Error(errorData.error || 'Error en la evaluación');
+			throw new Error(errorData.error || "Error en l'avaluació");
 		}
 
 		const result = await response.json();
 		return result;
 	};
 
-	// Función para generar PDF
 	const generatePDF = () => {
 		if (!evaluationResult) return;
 
@@ -78,10 +76,8 @@ export default function OptimEvaluator() {
 		const pageHeight = doc.internal.pageSize.getHeight();
 		const margin = 20;
 
-		// Configurar fuentes
 		doc.setFont('helvetica');
 
-		// Portada
 		doc.setFontSize(24);
 		doc.setTextColor(25, 152, 117);
 		doc.text("INFORME D'AVALUACIÓ", pageWidth / 2, 40, { align: 'center' });
@@ -89,7 +85,6 @@ export default function OptimEvaluator() {
 			align: 'center',
 		});
 
-		// Información básica
 		doc.setFontSize(12);
 		doc.setTextColor(60, 60, 60);
 		doc.text(`Títol: ${basicInfo.title}`, margin, 80);
@@ -104,7 +99,6 @@ export default function OptimEvaluator() {
 			140,
 		);
 
-		// Criterios extraídos
 		doc.setFontSize(10);
 		doc.setTextColor(100, 100, 100);
 		doc.text('Criteris avaluats:', margin, 155);
@@ -114,11 +108,9 @@ export default function OptimEvaluator() {
 			}
 		});
 
-		// Nueva página para contenido
 		doc.addPage();
 		let yPosition = 30;
 
-		// Resumen ejecutivo
 		doc.setFontSize(16);
 		doc.setTextColor(25, 152, 117);
 		doc.text('RESUM EXECUTIU', margin, yPosition);
@@ -133,7 +125,6 @@ export default function OptimEvaluator() {
 		doc.text(splitSummary, margin, yPosition);
 		yPosition += splitSummary.length * 5 + 20;
 
-		// Evaluación detallada
 		doc.setFontSize(16);
 		doc.setTextColor(25, 152, 117);
 		doc.text('AVALUACIÓ DETALLADA', margin, yPosition);
@@ -145,16 +136,14 @@ export default function OptimEvaluator() {
 				yPosition = 30;
 			}
 
-			// Título del criterio
 			doc.setFontSize(12);
 			doc.setTextColor(60, 60, 60);
 			doc.text(`${index + 1}. ${criterion.criterion}`, margin, yPosition);
 			yPosition += 10;
 
-			// Puntuación
 			const scoreText =
 				criterion.score === 'COMPLEIX_EXITOSAMENT'
-					? '🟢 COMPLEIX_EXITOSAMENT'
+					? '🟢 COMPLEIX EXITOSAMENT'
 					: criterion.score === 'REGULAR'
 					? '🟡 REGULAR'
 					: '🔴 INSUFICIENT';
@@ -180,7 +169,6 @@ export default function OptimEvaluator() {
 			doc.text(scoreText, margin + 10, yPosition);
 			yPosition += 10;
 
-			// Justificación
 			doc.setTextColor(60, 60, 60);
 			const splitJustification = doc.splitTextToSize(
 				criterion.justification,
@@ -189,7 +177,6 @@ export default function OptimEvaluator() {
 			doc.text(splitJustification, margin + 10, yPosition);
 			yPosition += splitJustification.length * 4 + 8;
 
-			// Puntos fuertes
 			if (criterion.strengths.length > 0) {
 				doc.setTextColor(25, 152, 117);
 				doc.text('Punts forts:', margin + 10, yPosition);
@@ -202,7 +189,6 @@ export default function OptimEvaluator() {
 				yPosition += 3;
 			}
 
-			// Áreas de mejora
 			if (criterion.improvements.length > 0) {
 				doc.setTextColor(220, 38, 38);
 				doc.text('Àrees de millora:', margin + 10, yPosition);
@@ -216,7 +202,6 @@ export default function OptimEvaluator() {
 			}
 		});
 
-		// Recomendación final
 		if (yPosition > pageHeight - 60) {
 			doc.addPage();
 			yPosition = 30;
@@ -235,12 +220,11 @@ export default function OptimEvaluator() {
 		);
 		doc.text(splitRecommendation, margin, yPosition);
 
-		// Metadatos finales
 		yPosition += splitRecommendation.length * 4 + 20;
 		doc.setFontSize(8);
 		doc.setTextColor(120, 120, 120);
 		doc.text(
-			"Generat per OptimEvaluator - Sistema d'Intel·ligència Artificial",
+			"Generat per OptimEvaluator - Sistema d'Avaluació Automàtica",
 			margin,
 			yPosition,
 		);
@@ -251,7 +235,6 @@ export default function OptimEvaluator() {
 		);
 		doc.text(`Versió del sistema: v1.0`, margin, yPosition + 20);
 
-		// Descargar PDF
 		doc.save(
 			`avaluacio_${basicInfo.expedient}_${
 				new Date().toISOString().split('T')[0]
@@ -291,8 +274,7 @@ export default function OptimEvaluator() {
 		}
 	};
 
-	// Verificar si hay archivos en procesamiento
-	const isProcessing = false; // Será manejado por los componentes hijos
+	const isProcessing = false;
 
 	return (
 		<div
@@ -305,10 +287,8 @@ export default function OptimEvaluator() {
 
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="space-y-6">
-					{/* Información básica */}
 					<BasicInfoForm basicInfo={basicInfo} setBasicInfo={setBasicInfo} />
 
-					{/* Sección de archivos */}
 					<div className="bg-white rounded-xl shadow-lg overflow-hidden">
 						<div className="border-t" style={{ borderColor: '#dfe7e6' }}>
 							<div className="px-6 py-4" style={{ backgroundColor: '#dfe7e6' }}>
@@ -342,7 +322,6 @@ export default function OptimEvaluator() {
 							</div>
 						</div>
 
-						{/* Control de evaluación */}
 						<EvaluationControl
 							onEvaluate={handleEvaluate}
 							isEvaluating={isEvaluating}
@@ -351,7 +330,6 @@ export default function OptimEvaluator() {
 							evaluationStatus={evaluationStatus}
 						/>
 
-						{/* Resultados */}
 						{evaluationResult && (
 							<EvaluationResults
 								evaluationResult={evaluationResult}

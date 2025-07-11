@@ -1,10 +1,9 @@
-// src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
 import FormData from 'form-data';
 import axios from 'axios';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SUPPORTED_TYPES = [
 	'application/pdf',
 	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -12,7 +11,6 @@ const SUPPORTED_TYPES = [
 	'text/plain',
 ];
 
-// API Key de PDFRest
 const PDFREST_API_KEY = '0d040095-68ab-41e7-a0f8-3c9dca8b2756';
 
 interface ProcessedFile {
@@ -31,14 +29,14 @@ export async function POST(request: NextRequest) {
 
 		if (!files || files.length === 0) {
 			return NextResponse.json(
-				{ error: 'No se han proporcionado archivos' },
+				{ error: "No s'han proporcionat fitxers" },
 				{ status: 400 },
 			);
 		}
 
 		if (!type || !['specification', 'proposal'].includes(type)) {
 			return NextResponse.json(
-				{ error: 'Tipo de archivo no válido' },
+				{ error: 'Tipus de fitxer no vàlid' },
 				{ status: 400 },
 			);
 		}
@@ -47,16 +45,15 @@ export async function POST(request: NextRequest) {
 
 		for (const file of files) {
 			try {
-				console.log(`📄 Procesando archivo: ${file.name}`);
+				console.log(`📄 Processant fitxer: ${file.name}`);
 
-				// Validar archivo
 				if (file.size > MAX_FILE_SIZE) {
 					processedFiles.push({
 						name: file.name,
 						content: '',
 						type,
 						success: false,
-						error: `Archivo demasiado grande: ${file.name} (máximo 10MB)`,
+						error: `Fitxer massa gran: ${file.name} (màxim 10MB)`,
 					});
 					continue;
 				}
@@ -67,46 +64,44 @@ export async function POST(request: NextRequest) {
 						content: '',
 						type,
 						success: false,
-						error: `Tipo de archivo no soportado: ${file.type}`,
+						error: `Tipus de fitxer no suportat: ${file.type}`,
 					});
 					continue;
 				}
 
-				// Procesar archivo según su tipo
 				const arrayBuffer = await file.arrayBuffer();
 				const buffer = Buffer.from(arrayBuffer);
 
 				let content = '';
 
 				if (file.type === 'application/pdf') {
-					console.log(`🔄 Extrayendo texto de PDF con PDFRest: ${file.name}`);
+					console.log(`🔄 Extraient text de PDF amb PDFRest: ${file.name}`);
 					content = await extractPDFWithPDFRest(buffer, file.name);
 
 					if (!content || content.trim().length < 50) {
-						throw new Error('No se pudo extraer texto suficiente del PDF');
+						throw new Error("No s'ha pogut extreure prou text del PDF");
 					}
 				} else if (
 					file.type.includes('word') ||
 					file.name.endsWith('.docx') ||
 					file.name.endsWith('.doc')
 				) {
-					console.log(`📝 Procesando documento Word: ${file.name}`);
+					console.log(`📝 Processant document Word: ${file.name}`);
 					const result = await mammoth.extractRawText({ buffer });
 					content = result.value;
 
 					if (!content || content.trim().length < 10) {
-						throw new Error('Documento Word vacío o sin contenido legible');
+						throw new Error('Document Word buit o sense contingut llegible');
 					}
 				} else if (file.type === 'text/plain') {
-					console.log(`📄 Procesando archivo de texto: ${file.name}`);
+					console.log(`📄 Processant fitxer de text: ${file.name}`);
 					content = buffer.toString('utf-8');
 
 					if (!content || content.trim().length < 10) {
-						throw new Error('Archivo de texto vacío');
+						throw new Error('Fitxer de text buit');
 					}
 				}
 
-				// Limpiar y normalizar el contenido
 				content = cleanTextContent(content);
 
 				processedFiles.push({
@@ -117,17 +112,17 @@ export async function POST(request: NextRequest) {
 				});
 
 				console.log(
-					`✅ Archivo procesado exitosamente: ${file.name} (${content.length} caracteres)`,
+					`✅ Fitxer processat amb èxit: ${file.name} (${content.length} caràcters)`,
 				);
 			} catch (error) {
-				console.error(`❌ Error procesando ${file.name}:`, error);
+				console.error(`❌ Error processant ${file.name}:`, error);
 
 				processedFiles.push({
 					name: file.name,
 					content: '',
 					type,
 					success: false,
-					error: error instanceof Error ? error.message : 'Error desconocido',
+					error: error instanceof Error ? error.message : 'Error desconegut',
 				});
 			}
 		}
@@ -142,26 +137,24 @@ export async function POST(request: NextRequest) {
 			},
 		});
 	} catch (error) {
-		console.error('Error general en el procesamiento:', error);
+		console.error('Error general en el processament:', error);
 		return NextResponse.json(
 			{
-				error: 'Error interno del servidor',
-				details: error instanceof Error ? error.message : 'Error desconocido',
+				error: 'Error intern del servidor',
+				details: error instanceof Error ? error.message : 'Error desconegut',
 			},
 			{ status: 500 },
 		);
 	}
 }
 
-// Función para extraer texto de PDF usando PDFRest API
 async function extractPDFWithPDFRest(
 	buffer: Buffer,
 	filename: string,
 ): Promise<string> {
 	try {
-		console.log(`🌐 Enviando ${filename} a PDFRest API...`);
+		console.log(`🌐 Enviant ${filename} a la API de PDFRest...`);
 
-		// Crear FormData para enviar a PDFRest
 		const formData = new FormData();
 		formData.append('file', buffer, {
 			filename: filename,
@@ -169,7 +162,6 @@ async function extractPDFWithPDFRest(
 		});
 		formData.append('word_style', 'on');
 
-		// Configurar la petición a PDFRest
 		const config = {
 			method: 'post' as const,
 			maxBodyLength: Infinity,
@@ -179,20 +171,17 @@ async function extractPDFWithPDFRest(
 				...formData.getHeaders(),
 			},
 			data: formData,
-			timeout: 30000, // 30 segundos timeout
+			timeout: 30000,
 		};
 
-		// Realizar la petición
 		const response = await axios(config);
 
-		console.log(`📥 Respuesta de PDFRest recibida para ${filename}`);
+		console.log(`📥 Resposta de PDFRest rebuda per a ${filename}`);
 
-		// Verificar la respuesta
 		if (!response.data) {
-			throw new Error('Respuesta vacía de PDFRest API');
+			throw new Error('Resposta buida de la API de PDFRest');
 		}
 
-		// Extraer el texto de la respuesta
 		let extractedText = '';
 
 		if (response.data.fullText) {
@@ -201,11 +190,10 @@ async function extractPDFWithPDFRest(
 				'',
 			);
 		} else {
-			// Si la estructura es diferente, intentar encontrar el texto
 			const dataStr = JSON.stringify(response.data);
-			console.log(`🔍 Estructura de respuesta PDFRest:`, response.data);
+			console.log(`🔍 Estructura de resposta PDFRest:`, response.data);
 			throw new Error(
-				`No se encontró texto en la respuesta de PDFRest. Estructura: ${dataStr.substring(
+				`No s'ha trobat text a la resposta de PDFRest. Estructura: ${dataStr.substring(
 					0,
 					200,
 				)}...`,
@@ -213,40 +201,41 @@ async function extractPDFWithPDFRest(
 		}
 
 		if (!extractedText || extractedText.trim().length < 10) {
-			throw new Error('PDFRest no pudo extraer texto suficiente del PDF');
+			throw new Error('PDFRest no ha pogut extreure prou text del PDF');
 		}
 
 		console.log(
-			`✅ Texto extraído exitosamente de ${filename}: ${extractedText.length} caracteres`,
+			`✅ Text extret amb èxit de ${filename}: ${extractedText.length} caràcters`,
 		);
 
 		return extractedText;
 	} catch (error) {
-		console.error(`❌ Error con PDFRest API para ${filename}:`, error);
+		console.error(`❌ Error amb la API de PDFRest per a ${filename}:`, error);
 
-		// Si es un error de axios, obtener más detalles
 		if (axios.isAxiosError(error)) {
 			const status = error.response?.status;
 			const statusText = error.response?.statusText;
 			const data = error.response?.data;
 
 			console.error(
-				`PDFRest API Error - Status: ${status}, StatusText: ${statusText}`,
+				`Error de la API de PDFRest - Status: ${status}, StatusText: ${statusText}`,
 				data,
 			);
 
 			if (status === 401) {
-				throw new Error('API Key de PDFRest inválida o no autorizada');
+				throw new Error('Clau API de PDFRest invàlida o no autoritzada');
 			} else if (status === 413) {
-				throw new Error('Archivo PDF demasiado grande para PDFRest API');
+				throw new Error('Fitxer PDF massa gran per a la API de PDFRest');
 			} else if (status === 422) {
-				throw new Error('Archivo PDF corrupto o no válido');
+				throw new Error('Fitxer PDF corrupte o no vàlid');
 			} else if (status === 429) {
-				throw new Error('Límite de rate de PDFRest API excedido');
+				throw new Error(
+					"S'ha excedit el límit de peticions de la API de PDFRest",
+				);
 			} else {
 				throw new Error(
-					`Error de PDFRest API: ${status} - ${
-						statusText || 'Error desconocido'
+					`Error de la API de PDFRest: ${status} - ${
+						statusText || 'Error desconegut'
 					}`,
 				);
 			}
@@ -256,30 +245,21 @@ async function extractPDFWithPDFRest(
 	}
 }
 
-// Función para limpiar y normalizar texto
 function cleanTextContent(text: string): string {
-	return (
-		text
-			// Normalizar espacios y saltos de línea
-			.replace(/\r\n/g, '\n')
-			.replace(/\r/g, '\n')
-			.replace(/\n{3,}/g, '\n\n')
-			.replace(/[ \t]+/g, ' ')
-			// Eliminar caracteres de control excepto los básicos
-			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
-			// Limpiar caracteres especiales mal decodificados
-			.replace(/�/g, '')
-			// Trim de cada línea
-			.split('\n')
-			.map((line) => line.trim())
-			.join('\n')
-			// Eliminar líneas vacías consecutivas
-			.replace(/\n{2,}/g, '\n\n')
-			.trim()
-	);
+	return text
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.replace(/[ \t]+/g, ' ')
+		.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+		.replace(/\s+/g, ' ')
+		.split('\n')
+		.map((line) => line.trim())
+		.join('\n')
+		.replace(/\n{2,}/g, '\n\n')
+		.trim();
 }
 
-// Función para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
 	if (bytes === 0) return '0 Bytes';
 	const k = 1024;

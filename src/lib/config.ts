@@ -1,8 +1,6 @@
-// src/lib/config.ts
 export const APP_CONFIG = {
-	// Configuración de archivos
 	files: {
-		maxSize: 10 * 1024 * 1024, // 10MB
+		maxSize: 10 * 1024 * 1024,
 		allowedTypes: [
 			'application/pdf',
 			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -11,42 +9,34 @@ export const APP_CONFIG = {
 		],
 		allowedExtensions: ['.pdf', '.docx', '.doc', '.txt'],
 	},
-
-	// Configuración de evaluación
 	evaluation: {
 		maxCriteria: 8,
 		minCriteriaDescriptionLength: 15,
 		maxCriteriaDescriptionLength: 100,
-		timeout: 120000, // 2 minutos
+		timeout: 120000,
 		retryAttempts: 3,
 	},
-
-	// Configuración de IA
 	ai: {
 		model: 'gemini-pro',
-		temperature: 0.3, // Más determinista para evaluaciones
+		temperature: 0.3,
 		maxTokens: 4000,
 		topK: 40,
 		topP: 0.95,
 	},
-
-	// Configuración de PDF
 	pdf: {
 		maxPages: 50,
 		timeout: 30000,
 		minTextLength: 10,
 	},
-
-	// Mensajes de la aplicación
 	messages: {
 		errors: {
 			fileTooBig: "L'arxiu supera el límit de 10MB",
 			fileTypeNotSupported: "Tipus d'arxiu no suportat",
 			processingError: "Error processant l'arxiu",
 			evaluationError: "Error durant l'avaluació",
-			missingApiKey: 'Clau API de Google Gemini no configurada',
-			missingFiles: 'Si us plau, puja els arxius necessaris',
-			missingInfo: 'Si us plau, completa la informació bàsica',
+			missingApiKey: 'Clau del sistema no configurada',
+			missingFiles: 'Si us plau, pugeu els arxius necessaris',
+			missingInfo: 'Si us plau, completeu la informació bàsica',
 		},
 		success: {
 			fileProcessed: 'Arxiu processat correctament',
@@ -58,22 +48,20 @@ export const APP_CONFIG = {
 			extractingCriteria: "Extraient criteris d'avaluació...",
 			evaluatingCriteria: 'Avaluant criteris...',
 			generatingSummary: 'Generant resum executiu...',
-			connectingAI: 'Connectant amb la intel·ligència artificial...',
+			connectingAI: 'Connectant amb el sistema...',
 		},
 	},
 };
 
-// Función para validar configuración
 export function validateConfig(): boolean {
 	if (!process.env.GOOGLE_GEMINI_API_KEY) {
-		console.error('GOOGLE_GEMINI_API_KEY no está configurada');
+		console.error('La clau del sistema no està configurada');
 		return false;
 	}
 
 	return true;
 }
 
-// Función para validar archivos
 export function validateFile(file: File): { isValid: boolean; error?: string } {
 	if (file.size > APP_CONFIG.files.maxSize) {
 		return {
@@ -98,7 +86,6 @@ export function validateFile(file: File): { isValid: boolean; error?: string } {
 	return { isValid: true };
 }
 
-// Función para formatear tamaño de archivo
 export function formatFileSize(bytes: number): string {
 	if (bytes === 0) return '0 Bytes';
 
@@ -109,7 +96,6 @@ export function formatFileSize(bytes: number): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Función para obtener icono según tipo de archivo
 export function getFileIcon(filename: string): string {
 	const ext = filename.toLowerCase().split('.').pop();
 
@@ -126,7 +112,6 @@ export function getFileIcon(filename: string): string {
 	}
 }
 
-// Constantes para la UI
 export const UI_CONFIG = {
 	colors: {
 		primary: '#199875',

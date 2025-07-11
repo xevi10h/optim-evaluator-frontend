@@ -32,7 +32,6 @@ export default function EvaluationResults({
 			</div>
 
 			<div className="p-6">
-				{/* Criterios extraídos */}
 				<div
 					className="rounded-lg p-4 mb-6"
 					style={{
@@ -44,7 +43,7 @@ export default function EvaluationResults({
 						className="text-md font-semibold mb-2"
 						style={{ color: '#1c1c1c' }}
 					>
-						Criteris Identificats per la IA
+						Criteris Identificats
 					</h4>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
 						{evaluationResult.extractedCriteria.map((criterion, index) => (
@@ -63,7 +62,6 @@ export default function EvaluationResults({
 					</div>
 				</div>
 
-				{/* Executive summary */}
 				<div
 					className="rounded-lg p-6 mb-6"
 					style={{ backgroundColor: '#dfe7e6' }}
@@ -79,7 +77,6 @@ export default function EvaluationResults({
 					</p>
 				</div>
 
-				{/* Evaluation criteria */}
 				<div className="space-y-6">
 					<h4 className="text-lg font-semibold" style={{ color: '#1c1c1c' }}>
 						Avaluació per Criteris
@@ -111,10 +108,10 @@ export default function EvaluationResults({
 									}}
 								>
 									{criterion.score === 'COMPLEIX_EXITOSAMENT'
-										? '🟢 CUMPLE EXITOSAMENTE'
+										? '🟢 Compleix exitosament'
 										: criterion.score === 'REGULAR'
-										? '🟡 REGULAR'
-										: '🔴 INSUFICIENTE'}
+										? '🟡 Regular'
+										: '🔴 Insuficient'}
 								</span>
 							</div>
 
@@ -189,7 +186,6 @@ export default function EvaluationResults({
 					))}
 				</div>
 
-				{/* Final recommendation */}
 				<div
 					className="rounded-lg p-6 mt-6"
 					style={{ backgroundColor: '#fff3cd', borderColor: '#ffeaa7' }}
@@ -205,7 +201,6 @@ export default function EvaluationResults({
 					</p>
 				</div>
 
-				{/* Download button */}
 				<div className="flex justify-center mt-8">
 					<button
 						onClick={onDownloadPDF}

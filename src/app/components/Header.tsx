@@ -23,7 +23,7 @@ export default function Header() {
 								OptimEvaluator
 							</h1>
 							<p className="text-sm" style={{ color: '#6f6f6f' }}>
-								Sistema d'Avaluació de Licitacions amb IA
+								Sistema d'Avaluació de Licitacions
 							</p>
 						</div>
 					</div>

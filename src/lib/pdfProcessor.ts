@@ -1,7 +1,5 @@
-// src/lib/pdfProcessor.ts (versión simplificada)
 import { FileContent } from '@/types';
 
-// Solo mantener las funciones que se usan en el servidor
 export async function processServerFiles(
 	files: FileContent[],
 ): Promise<FileContent[]> {
@@ -13,13 +11,13 @@ export async function processServerFiles(
 
 			if (cleanContent.length < 50) {
 				console.warn(
-					`Contenido insuficiente en ${file.name}: ${cleanContent.length} caracteres`,
+					`Contingut insuficient a ${file.name}: ${cleanContent.length} caràcters`,
 				);
 			}
 
 			processedFiles.push({ ...file, content: cleanContent });
 		} catch (error) {
-			console.error(`Error processing ${file.name}:`, error);
+			console.error(`Error processant ${file.name}:`, error);
 			processedFiles.push(file);
 		}
 	}
@@ -27,30 +25,20 @@ export async function processServerFiles(
 	return processedFiles;
 }
 
-// Función para limpiar texto extraído
 export function cleanExtractedText(text: string): string {
-	return (
-		text
-			// Normalizar espacios y saltos de línea
-			.replace(/\r\n/g, '\n')
-			.replace(/\r/g, '\n')
-			.replace(/\n{3,}/g, '\n\n')
-			.replace(/[ \t]+/g, ' ')
-			// Eliminar caracteres de control
-			.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
-			// Limpiar caracteres especiales mal decodificados
-			.replace(/�/g, '')
-			// Trim de cada línea
-			.split('\n')
-			.map((line) => line.trim())
-			.join('\n')
-			// Eliminar líneas vacías consecutivas
-			.replace(/\n{2,}/g, '\n\n')
-			.trim()
-	);
+	return text
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.replace(/[ \t]+/g, ' ')
+		.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+		.split('\n')
+		.map((line) => line.trim())
+		.join('\n')
+		.replace(/\n{2,}/g, '\n\n')
+		.trim();
 }
 
-// Función para obtener información del archivo
 export function getFileInfo(file: File) {
 	const extension = file.name.split('.').pop()?.toLowerCase() || '';
 	const isSupported = ['pdf', 'docx', 'doc', 'txt'].includes(extension);
@@ -65,7 +53,6 @@ export function getFileInfo(file: File) {
 	};
 }
 
-// Función para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
 	if (bytes === 0) return '0 Bytes';
 	const k = 1024;
@@ -74,25 +61,23 @@ function formatFileSize(bytes: number): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Función para validar contenido extraído
 export function validateExtractedContent(
 	content: string,
 	filename: string,
 ): boolean {
 	if (!content || content.trim().length < 50) {
 		console.warn(
-			`Contenido insuficiente en ${filename}: ${content.length} caracteres`,
+			`Contingut insuficient a ${filename}: ${content.length} caràcters`,
 		);
 		return false;
 	}
 
-	// Verificar que no sea solo caracteres especiales
 	const meaningfulContent = content.replace(
 		/[^a-zA-Z0-9àèéíòóúÀÈÉÍÒÓÚñÑçÇ]/g,
 		'',
 	).length;
 	if (meaningfulContent < 50) {
-		console.warn(`Contenido sin significado en ${filename}`);
+		console.warn(`Contingut sense significat a ${filename}`);
 		return false;
 	}
 

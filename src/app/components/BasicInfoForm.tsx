@@ -100,7 +100,7 @@ export default function BasicInfoForm({
 							className="block text-sm font-medium mb-2"
 							style={{ color: '#1c1c1c' }}
 						>
-							Context Adicional
+							Context Addicional
 						</label>
 						<textarea
 							value={basicInfo.context}

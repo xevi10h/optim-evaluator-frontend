@@ -69,18 +69,18 @@ async function extractEvaluationCriteria(
 		});
 
 		if (!response?.text) {
-			throw new Error("No s'han rebut candidats en la resposta de Gemini");
+			throw new Error("No s'han rebut candidats en la resposta del sistema");
 		}
 
 		try {
 			const criteria = JSON.parse(response.text);
 			return Array.isArray(criteria) ? criteria : [];
 		} catch (parseError) {
-			console.error('Error parsing criteria JSON:', parseError);
+			console.error('Error en analitzar el JSON de criteris:', parseError);
 			return extractCriteriaFromText(response.text);
 		}
 	} catch (error) {
-		console.error('Error extracting criteria:', error);
+		console.error("Error en l'extracció de criteris:", error);
 		return [];
 	}
 }
@@ -187,7 +187,7 @@ async function evaluateCriterion(
 		});
 
 		if (!response?.text) {
-			throw new Error("No s'ha rebut resposta de Gemini per al criteri");
+			throw new Error("No s'ha rebut resposta del sistema per al criteri");
 		}
 
 		const jsonMatch = response?.text.match(/\{[\s\S]*\}/);
@@ -206,7 +206,7 @@ async function evaluateCriterion(
 			throw new Error("No s'ha pogut extreure JSON de la resposta");
 		}
 	} catch (error) {
-		console.error(`Error evaluating criterion "${criterion}":`, error);
+		console.error(`Error en avaluar el criteri "${criterion}":`, error);
 
 		return {
 			criterion,
@@ -290,7 +290,9 @@ async function generateExecutiveSummary(
 		});
 
 		if (!response?.text) {
-			throw new Error("No s'ha rebut resposta de Gemini per al resum executiu");
+			throw new Error(
+				"No s'ha rebut resposta del sistema per al resum executiu",
+			);
 		}
 
 		const jsonMatch = response.text.match(/\{[\s\S]*\}/);
@@ -305,7 +307,7 @@ async function generateExecutiveSummary(
 			throw new Error("No s'ha pogut extreure JSON de la resposta");
 		}
 	} catch (error) {
-		console.error('Error generating executive summary:', error);
+		console.error('Error en generar el resum executiu:', error);
 
 		const scores = criteria.map((c) => {
 			switch (c.score) {
@@ -342,11 +344,11 @@ async function evaluateProposal(
 	proposals: FileContent[],
 ): Promise<EvaluationResult> {
 	try {
-		console.log('Processing files on server...');
+		console.log('Processant arxius al servidor...');
 		const processedSpecs = await processServerFiles(specifications);
 		const processedProposals = await processServerFiles(proposals);
 
-		console.log('Extracting evaluation criteria...');
+		console.log("Extraient criteris d'avaluació...");
 		const extractedCriteria = await extractEvaluationCriteria(processedSpecs);
 
 		if (extractedCriteria.length === 0) {
@@ -355,11 +357,11 @@ async function evaluateProposal(
 			);
 		}
 
-		console.log(`Evaluating ${extractedCriteria.length} criteria...`);
+		console.log(`Avaluant ${extractedCriteria.length} criteris...`);
 		const criteriaEvaluations: EvaluationCriteria[] = [];
 
 		for (const criterion of extractedCriteria) {
-			console.log(`Evaluating: ${criterion}`);
+			console.log(`Avaluant: ${criterion}`);
 			const evaluation = await evaluateCriterion(
 				criterion,
 				processedSpecs,
@@ -368,7 +370,7 @@ async function evaluateProposal(
 			criteriaEvaluations.push(evaluation);
 		}
 
-		console.log('Generating executive summary...');
+		console.log('Generant resum executiu...');
 		const { summary, recommendation, confidence } =
 			await generateExecutiveSummary(
 				criteriaEvaluations,
@@ -384,7 +386,7 @@ async function evaluateProposal(
 			extractedCriteria,
 		};
 	} catch (error) {
-		console.error('Error in evaluation process:', error);
+		console.error("Error en el procés d'avaluació:", error);
 		throw error;
 	}
 }
@@ -393,7 +395,7 @@ export async function POST(request: NextRequest) {
 	try {
 		if (!process.env.GEMINI_API_KEY) {
 			return NextResponse.json(
-				{ error: 'Gemini API key no configurada' },
+				{ error: 'Clau del sistema no configurada' },
 				{ status: 500 },
 			);
 		}
@@ -423,7 +425,7 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json(result);
 	} catch (error) {
-		console.error('API Error:', error);
+		console.error("Error de l'API:", error);
 		return NextResponse.json(
 			{
 				error: 'Error intern del servidor',

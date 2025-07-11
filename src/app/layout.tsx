@@ -10,12 +10,11 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "OptimEvaluator - Sistema d'Avaluació de Licitacions",
 	description:
-		"Plataforma d'avaluació automàtica de propostes de licitació per a l'Administració Pública utilitzant intel·ligència artificial",
+		"Plataforma d'avaluació automàtica de propostes de licitació per a l'Administració Pública.",
 	keywords: [
 		'licitacions',
 		'avaluació',
 		'administració pública',
-		'intel·ligència artificial',
 		'propostes',
 		'optim people',
 	],
@@ -30,7 +29,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="es" className={inter.variable}>
+		<html lang="ca" className={inter.variable}>
 			<body className="font-sans antialiased">{children}</body>
 		</html>
 	);

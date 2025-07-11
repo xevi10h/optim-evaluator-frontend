@@ -1,4 +1,3 @@
-// src/types/index.ts
 export interface FileWithContent {
 	file: File;
 	content: string;

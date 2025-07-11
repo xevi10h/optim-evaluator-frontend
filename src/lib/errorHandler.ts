@@ -1,7 +1,5 @@
-// src/lib/errorHandler.ts
 import { APP_CONFIG } from './config';
 
-// Tipos de errores personalizados
 export class OptimEvaluatorError extends Error {
 	public code: string;
 	public isUserFriendly: boolean;
@@ -37,14 +35,13 @@ export class EvaluationError extends OptimEvaluatorError {
 export class APIError extends OptimEvaluatorError {
 	constructor(message: string, statusCode?: number) {
 		super(
-			statusCode ? `${message} (Código: ${statusCode})` : message,
+			statusCode ? `${message} (Codi: ${statusCode})` : message,
 			'API_ERROR',
 			true,
 		);
 	}
 }
 
-// Logger simple
 export class Logger {
 	private static instance: Logger;
 	private logs: Array<{
@@ -71,12 +68,10 @@ export class Logger {
 
 		this.logs.push(entry);
 
-		// Mantener solo los últimos 100 logs
 		if (this.logs.length > 100) {
 			this.logs.shift();
 		}
 
-		// Log en consola en desarrollo
 		if (process.env.NODE_ENV === 'development') {
 			console[level](
 				`[${entry.timestamp.toISOString()}] ${message}`,
@@ -106,7 +101,6 @@ export class Logger {
 	}
 }
 
-// Función para manejar errores de manera centralizada
 export function handleError(
 	error: unknown,
 	context?: string,
@@ -114,23 +108,22 @@ export function handleError(
 	const logger = Logger.getInstance();
 
 	if (error instanceof OptimEvaluatorError) {
-		logger.error(`Error en ${context || 'aplicación'}:`, error.message);
+		logger.error(`Error a ${context || 'aplicació'}:`, error.message);
 		return error;
 	}
 
 	if (error instanceof Error) {
 		logger.error(
-			`Error no controlado en ${context || 'aplicación'}:`,
+			`Error no controlat a ${context || 'aplicació'}:`,
 			error.message,
 		);
 
-		// Mapear errores comunes a errores user-friendly
 		if (
 			error.message.includes('timeout') ||
 			error.message.includes('Timeout')
 		) {
 			return new EvaluationError(
-				'La operació ha superat el temps límit. Intenta-ho de nou.',
+				"L'operació ha superat el temps límit. Intenta-ho de nou.",
 			);
 		}
 
@@ -139,7 +132,7 @@ export function handleError(
 			error.message.includes('unauthorized')
 		) {
 			return new APIError(
-				"Error de configuració de l'API. Contacta amb l'administrador.",
+				"Error de configuració del sistema. Contacta amb l'administrador.",
 			);
 		}
 
@@ -152,7 +145,7 @@ export function handleError(
 		return new OptimEvaluatorError(error.message, 'UNKNOWN_ERROR', false);
 	}
 
-	logger.error(`Error desconocido en ${context || 'aplicación'}:`, error);
+	logger.error(`Error desconegut a ${context || 'aplicació'}:`, error);
 	return new OptimEvaluatorError(
 		'Ha ocorregut un error inesperat',
 		'UNKNOWN_ERROR',
@@ -160,14 +153,12 @@ export function handleError(
 	);
 }
 
-// Función para obtener mensaje de error user-friendly
 export function getErrorMessage(error: unknown): string {
 	if (error instanceof OptimEvaluatorError && error.isUserFriendly) {
 		return error.message;
 	}
 
 	if (error instanceof Error) {
-		// Mapear mensajes técnicos a mensajes user-friendly
 		const message = error.message.toLowerCase();
 
 		if (message.includes('pdf')) {
@@ -179,11 +170,11 @@ export function getErrorMessage(error: unknown): string {
 		}
 
 		if (message.includes('api') || message.includes('gemini')) {
-			return "Error en el servei d'intel·ligència artificial. Intenta-ho de nou.";
+			return "Error en el servei d'avaluació. Intenta-ho de nou.";
 		}
 
 		if (message.includes('timeout')) {
-			return 'La operació ha superat el temps límit. Intenta-ho de nou.';
+			return "L'operació ha superat el temps límit. Intenta-ho de nou.";
 		}
 
 		if (message.includes('network') || message.includes('fetch')) {
@@ -194,7 +185,6 @@ export function getErrorMessage(error: unknown): string {
 	return 'Ha ocorregut un error inesperat. Intenta-ho de nou.';
 }
 
-// Función para retry automático
 export async function withRetry<T>(
 	fn: () => Promise<T>,
 	maxRetries: number = APP_CONFIG.evaluation.retryAttempts,
@@ -206,25 +196,23 @@ export async function withRetry<T>(
 		try {
 			return await fn();
 		} catch (error) {
-			logger.warn(`Intento ${attempt}/${maxRetries} fallido:`, error);
+			logger.warn(`Intent ${attempt}/${maxRetries} fallit:`, error);
 
 			if (attempt === maxRetries) {
 				throw error;
 			}
 
-			// Esperar antes del siguiente intento
 			await new Promise((resolve) => setTimeout(resolve, delay * attempt));
 		}
 	}
 
-	throw new Error('Número máximo de intentos alcanzado');
+	throw new Error("Nombre màxim d'intents assolit");
 }
 
-// Función para timeout
 export function withTimeout<T>(
 	promise: Promise<T>,
 	timeoutMs: number,
-	errorMessage: string = 'Operación cancelada por timeout',
+	errorMessage: string = "Operació cancel·lada per temps d'espera",
 ): Promise<T> {
 	return new Promise((resolve, reject) => {
 		const timeoutId = setTimeout(() => {
@@ -238,31 +226,26 @@ export function withTimeout<T>(
 	});
 }
 
-// Función para validar respuesta de API
 export function validateAPIResponse(response: any): void {
 	if (!response) {
-		throw new APIError('Respuesta vacía de la API');
+		throw new APIError('Resposta buida del sistema');
 	}
 
 	if (response.error) {
 		throw new APIError(response.error);
 	}
 
-	// Validar estructura básica de respuesta de evaluación
 	if (response.criteria && !Array.isArray(response.criteria)) {
 		throw new APIError(
-			'Formato de respuesta inválido: criteria debe ser un array',
+			'Format de resposta invàlid: criteria ha de ser un array',
 		);
 	}
 
 	if (response.summary && typeof response.summary !== 'string') {
-		throw new APIError(
-			'Formato de respuesta inválido: summary debe ser string',
-		);
+		throw new APIError('Format de resposta invàlid: summary ha de ser string');
 	}
 }
 
-// Hook para manejar errores en componentes React
 export function useErrorHandler() {
 	const logger = Logger.getInstance();
 
