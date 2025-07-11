@@ -251,21 +251,25 @@ export class PDFGeneratorService {
 	}
 
 	private addCriterionEvaluation(criterion: any, index: number): void {
+		// Título del criterio en negro
 		this.doc.setFontSize(12);
-		this.doc.setTextColor(25, 152, 117);
+		this.doc.setTextColor(0, 0, 0); // Negro en lugar de verde
 		this.doc.setFont('helvetica', 'bold');
 		const criterionTitle = `${index}. ${criterion.criterion}`;
 		const titleHeight = this.addWrappedText(
 			criterionTitle,
 			this.margin,
 			this.currentY,
-			this.contentWidth - 70,
+			this.contentWidth, // Usar todo el ancho disponible
 		);
 
+		this.currentY += titleHeight + 5; // Mover hacia abajo después del título
+
+		// Calificación debajo del título en negro
 		const scoreColors = {
-			COMPLEIX_EXITOSAMENT: [25, 152, 117],
-			REGULAR: [245, 158, 11],
-			INSUFICIENT: [220, 38, 38],
+			COMPLEIX_EXITOSAMENT: [0, 0, 0], // Negro
+			REGULAR: [0, 0, 0], // Negro
+			INSUFICIENT: [0, 0, 0], // Negro
 		};
 
 		const scoreTexts = {
@@ -280,12 +284,11 @@ export class PDFGeneratorService {
 		this.doc.setFont('helvetica', 'bold');
 		this.doc.text(
 			`Puntuació: ${scoreTexts[criterion.score as keyof typeof scoreTexts]}`,
-			this.pageWidth - this.margin,
-			this.currentY + 5,
-			{ align: 'right' },
+			this.margin,
+			this.currentY, // Debajo del título, no a la derecha
 		);
 
-		this.currentY += titleHeight + 10;
+		this.currentY += 10; // Espacio después de la puntuación
 
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
