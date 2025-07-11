@@ -10,7 +10,6 @@ import {
 	XCircle,
 	Loader2,
 	AlertTriangle,
-	Copy,
 	FileX,
 } from 'lucide-react';
 import type { FileWithContent } from '@/types';
@@ -41,8 +40,13 @@ export default function FileUploadSection({
 				'Procesando archivos:',
 				selectedFiles.map((f) => f.name),
 			);
-			const processedFiles = await processing.processFiles(selectedFiles);
+
+			// Determinar el tipo basado en el icono
+			const type = icon === 'spec' ? 'specification' : 'proposal';
+
+			const processedFiles = await processing.processFiles(selectedFiles, type);
 			console.log('Archivos procesados:', processedFiles.length);
+
 			setFiles([...files, ...processedFiles]);
 		} catch (err) {
 			console.error('Error processing files:', err);
@@ -58,29 +62,8 @@ export default function FileUploadSection({
 		setFiles(files.filter((_, i) => i !== index));
 	};
 
-	const copyPlaceholderText = (content: string) => {
-		navigator.clipboard.writeText(content).then(() => {
-			console.log('Texto copiado al portapapeles');
-		});
-	};
-
-	const isPlaceholder = (content: string) => {
-		return (
-			content.includes('[PDF:') &&
-			content.includes('IMPORTANTE: Este PDF no se pudo procesar')
-		);
-	};
-
 	const getFileStatus = (file: FileWithContent) => {
-		if (isPlaceholder(file.content)) {
-			return {
-				status: 'error' as const,
-				icon: <FileX className="h-5 w-5" style={{ color: '#dc2626' }} />,
-				color: '#dc2626',
-				bgColor: '#fef2f2',
-				message: 'Error al procesar PDF',
-			};
-		} else if (file.content.length < 100) {
+		if (file.content.length < 100) {
 			return {
 				status: 'warning' as const,
 				icon: (
@@ -108,6 +91,7 @@ export default function FileUploadSection({
 			<h4 className="text-md font-medium mb-4" style={{ color: '#1c1c1c' }}>
 				{title}
 			</h4>
+
 			<div
 				className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer ${
 					dragDrop.isDragging ? 'border-blue-500 bg-blue-50' : ''
@@ -130,12 +114,12 @@ export default function FileUploadSection({
 					{description}
 				</p>
 
-				{/* Mensaje adicional para PDFs */}
-				<div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
-					<p className="text-xs text-blue-800">
-						💡 <strong>Para PDFs problemáticos:</strong> Si un PDF no se procesa
-						correctamente, puedes copiar manualmente el texto relevante y crear
-						un archivo .txt, o convertir el PDF a formato Word (.docx).
+				{/* Información mejorada */}
+				<div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-left">
+					<p className="text-xs text-green-800">
+						✅ <strong>Procesamiento mejorado:</strong> Los archivos se procesan
+						en el servidor para mejor compatibilidad y extracción de texto más
+						precisa.
 					</p>
 				</div>
 			</div>
@@ -151,7 +135,7 @@ export default function FileUploadSection({
 				className="hidden"
 			/>
 
-			{/* Indicador de progreso */}
+			{/* Indicador de progreso mejorado */}
 			{processing.isProcessing && (
 				<div
 					className="mt-4 p-4 rounded-lg"
@@ -160,7 +144,7 @@ export default function FileUploadSection({
 					<div className="flex items-center justify-between mb-2">
 						<span className="text-sm font-medium" style={{ color: '#1c1c1c' }}>
 							<Loader2 className="inline h-4 w-4 mr-2 animate-spin" />
-							Procesando: {processing.currentFile}
+							{processing.currentFile || 'Procesando archivos...'}
 						</span>
 						<span className="text-sm" style={{ color: '#6f6f6f' }}>
 							{Math.round(processing.progress)}%
@@ -216,32 +200,18 @@ export default function FileUploadSection({
 												className="text-xs mt-1"
 												style={{ color: fileStatus.color }}
 											>
-												{fileStatus.message} • {file.content.length} caracteres
+												{fileStatus.message} •{' '}
+												{file.content.length.toLocaleString()} caracteres
 											</p>
 
-											{/* Mostrar preview del contenido */}
+											{/* Preview del contenido */}
 											<div className="mt-2">
-												{isPlaceholder(file.content) ? (
-													<div className="bg-red-50 border border-red-200 rounded p-3">
-														<p className="text-xs text-red-800 mb-2">
-															⚠️ Este PDF no se pudo procesar automáticamente.
-														</p>
-														<button
-															onClick={() => copyPlaceholderText(file.content)}
-															className="flex items-center text-xs text-blue-600 hover:text-blue-800"
-														>
-															<Copy className="h-3 w-3 mr-1" />
-															Copiar instrucciones
-														</button>
-													</div>
-												) : (
-													<div className="bg-white border rounded p-2">
-														<p className="text-xs text-gray-600">
-															Preview: {file.content.substring(0, 150)}
-															{file.content.length > 150 ? '...' : ''}
-														</p>
-													</div>
-												)}
+												<div className="bg-white border rounded p-2">
+													<p className="text-xs text-gray-600">
+														Preview: {file.content.substring(0, 200)}
+														{file.content.length > 200 ? '...' : ''}
+													</p>
+												</div>
 											</div>
 										</div>
 									</div>
@@ -252,27 +222,24 @@ export default function FileUploadSection({
 				</div>
 			)}
 
-			{/* Error display */}
+			{/* Error display mejorado */}
 			{processing.error && (
 				<div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
 					<div className="flex items-start space-x-2">
 						<AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
 						<div>
 							<p className="text-sm font-medium text-red-800">
-								Error procesando archivo
+								Error procesando archivos
 							</p>
-							<p className="text-sm text-red-600 mt-1">{processing.error}</p>
-							<div className="mt-2 text-xs text-red-700">
-								<p>
-									<strong>Sugerencias:</strong>
-								</p>
-								<ul className="list-disc list-inside mt-1 space-y-1">
-									<li>Verifica que el archivo no esté protegido o cifrado</li>
-									<li>Intenta convertir el PDF a formato Word (.docx)</li>
-									<li>Copia manualmente el texto y crea un archivo .txt</li>
-									<li>Prueba con un archivo PDF diferente</li>
-								</ul>
-							</div>
+							<p className="text-sm text-red-600 mt-1 whitespace-pre-line">
+								{processing.error}
+							</p>
+							<button
+								onClick={processing.clearError}
+								className="mt-2 text-xs text-red-700 hover:text-red-900 underline"
+							>
+								Cerrar mensaje
+							</button>
 						</div>
 					</div>
 				</div>
