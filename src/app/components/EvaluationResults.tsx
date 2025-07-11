@@ -93,7 +93,7 @@ export default function EvaluationResults({
 									className="text-md font-semibold"
 									style={{ color: '#1c1c1c' }}
 								>
-									{criterion.criterion}
+									{index + 1}. {criterion.criterion}
 								</h5>
 								<span
 									className="px-3 py-1 rounded-full text-sm font-medium"
