@@ -45,7 +45,7 @@ export function useFileProcessing() {
 				setState((prev) => ({
 					...prev,
 					progress: 25,
-					currentFile: `Sending ${files.length} file(s) to server...`,
+					currentFile: `Enviant ${files.length} document(s) al servidor...`,
 				}));
 
 				// Use the new API service
@@ -57,13 +57,13 @@ export function useFileProcessing() {
 				setState((prev) => ({
 					...prev,
 					progress: 75,
-					currentFile: 'Processing server response...',
+					currentFile: `Processant ${result.summary.successful} document(s)...`,
 				}));
 
 				setState((prev) => ({
 					...prev,
 					progress: 100,
-					currentFile: 'Completed',
+					currentFile: `Processament completat: ${result.summary.successful} document(s) processats amb èxit.`,
 				}));
 
 				// Convert processed files to the format expected by the frontend
@@ -81,7 +81,7 @@ export function useFileProcessing() {
 				let errorMessage = '';
 
 				if (failedFiles.length > 0) {
-					errorMessage += `❌ ${failedFiles.length} file(s) could not be processed:\n`;
+					errorMessage += `❌ ${failedFiles.length} documents(s) no han pogut ser processats:\n`;
 					errorMessage += failedFiles
 						.map((f) => `- ${f.name}: ${f.error}`)
 						.join('\n');
@@ -95,19 +95,19 @@ export function useFileProcessing() {
 				}
 
 				console.log(
-					`✅ Processed ${processedFiles.length}/${files.length} files successfully`,
+					`✅ Processats ${processedFiles.length}/${files.length} documents correctament.`,
 				);
 
 				return processedFiles;
 			} catch (error) {
 				const errorMessage =
-					error instanceof Error ? error.message : 'Unknown error';
-				console.error('❌ Error in processing:', errorMessage);
+					error instanceof Error ? error.message : 'Error desconegut';
+				console.error('❌ Error en el processament:', errorMessage);
 
 				setState({
 					isProcessing: false,
 					currentFile: null,
-					error: `Error processing files: ${errorMessage}`,
+					error: `Error processant documents: ${errorMessage}`,
 					progress: 0,
 				});
 				throw error;
@@ -202,7 +202,7 @@ export function useDragAndDrop() {
 			});
 
 			if (supportedFiles.length === 0) {
-				console.warn('No supported files found');
+				console.warn("No s'han trobat fitxers vàlids per processar.");
 				return;
 			}
 
