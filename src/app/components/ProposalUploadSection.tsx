@@ -98,21 +98,21 @@ export default function ProposalUploadSection({
 							className="text-sm font-medium whitespace-nowrap hidden sm:block"
 							style={{ color: '#1c1c1c' }}
 						>
-							Lote:
+							Lot:
 						</label>
 						<select
 							value={selectedLot}
 							onChange={(e) => setSelectedLot(Number(e.target.value))}
 							className="px-2 py-1 border rounded focus:ring-2 focus:ring-opacity-50 focus:border-transparent text-sm w-48"
 							style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
-							title={`Lote ${selectedLot}: ${
+							title={`Lot ${selectedLot}: ${
 								extractedLots.find((l) => l.lotNumber === selectedLot)?.title ||
 								''
 							}`}
 						>
 							{extractedLots.map((lot) => (
 								<option key={lot.lotNumber} value={lot.lotNumber}>
-									Lote {lot.lotNumber}:{' '}
+									Lot {lot.lotNumber}:{' '}
 									{lot.title.length > 25
 										? lot.title.substring(0, 25) + '...'
 										: lot.title}
@@ -195,7 +195,7 @@ export default function ProposalUploadSection({
 				<div className="mt-4 space-y-3">
 					<div className="flex items-center justify-between">
 						<h5 className="text-sm font-medium" style={{ color: '#1c1c1c' }}>
-							Propostes per Lote
+							Propostes per Lot
 						</h5>
 					</div>
 
@@ -215,7 +215,7 @@ export default function ProposalUploadSection({
 										/>
 										<span className="font-medium" style={{ color: '#1c1c1c' }}>
 											<span className="font-semibold">
-												Lote {lot.lotNumber}:{' '}
+												Lot {lot.lotNumber}:{' '}
 											</span>
 											{lot.title}
 										</span>
@@ -229,7 +229,7 @@ export default function ProposalUploadSection({
 											style={{ color: '#f59e0b' }}
 										/>
 										<p className="text-sm" style={{ color: '#f59e0b' }}>
-											No s'ha presentat proposta per aquest lote
+											No s'ha presentat proposta per aquest lot
 										</p>
 									</div>
 								) : (

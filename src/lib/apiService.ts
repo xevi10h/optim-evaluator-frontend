@@ -140,39 +140,6 @@ class ApiService {
 		});
 	}
 
-	// Keep legacy method for backward compatibility
-	async evaluateProposal(
-		specifications: FileContent[],
-		proposals: FileContent[],
-	): Promise<EvaluationResult> {
-		const singleLotResult = await this.makeRequest<any>('/evaluate', {
-			method: 'POST',
-			body: JSON.stringify({
-				specifications,
-				proposals,
-			}),
-		});
-
-		// Convert legacy format to new format
-		return {
-			lots: [
-				{
-					lotNumber: 1,
-					lotTitle: 'Lot Únic',
-					hasProposal: true,
-					criteria: singleLotResult.criteria,
-					summary: singleLotResult.summary,
-					recommendation: singleLotResult.recommendation,
-					confidence: singleLotResult.confidence,
-				},
-			],
-			extractedLots: [{ lotNumber: 1, title: 'Lot Únic' }],
-			overallSummary: singleLotResult.summary,
-			overallRecommendation: singleLotResult.recommendation,
-			overallConfidence: singleLotResult.confidence,
-		};
-	}
-
 	async healthCheck(): Promise<{
 		status: string;
 		timestamp: string;

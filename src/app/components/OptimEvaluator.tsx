@@ -30,9 +30,8 @@ export default function OptimEvaluator() {
 		FileWithContent[]
 	>([]);
 	const [proposalFiles, setProposalFiles] = useState<ProposalFile[]>([]);
-	const [extractedLots, setExtractedLots] = useState<LotInfo[]>([
-		{ lotNumber: 1, title: 'Lot Únic' },
-	]);
+	const [extractedLots, setExtractedLots] = useState<LotInfo[]>([]);
+	const [isLoadingLots, setIsLoadingLots] = useState(false);
 	const [isEvaluating, setIsEvaluating] = useState(false);
 	const [evaluationResult, setEvaluationResult] =
 		useState<EvaluationResult | null>(null);
@@ -43,12 +42,14 @@ export default function OptimEvaluator() {
 	useEffect(() => {
 		const extractLots = async () => {
 			if (specificationFiles.length === 0) {
-				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
+				setExtractedLots([]);
+				setProposalFiles([]);
 				return;
 			}
 
 			try {
-				setEvaluationStatus('Extraient informació dels lors...');
+				setIsLoadingLots(true);
+				setEvaluationStatus('Extraient informació dels lots...');
 
 				const specifications = specificationFiles.map((file) => ({
 					name: file.name,
@@ -60,17 +61,22 @@ export default function OptimEvaluator() {
 
 				if (lots.length > 0) {
 					setExtractedLots(lots);
-					// Reset proposal files when lots change
-					setProposalFiles([]);
 				} else {
+					// Si no se encuentran lots múltiples, usar lot único por defecto
 					setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
 				}
 
+				// Reset proposal files when lots change
+				setProposalFiles([]);
 				setEvaluationStatus('');
 			} catch (err) {
 				console.error('Error extracting lots:', err);
+				// En caso de error, usar lot único por defecto
 				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
+				setProposalFiles([]);
 				setEvaluationStatus('');
+			} finally {
+				setIsLoadingLots(false);
 			}
 		};
 
@@ -136,7 +142,11 @@ export default function OptimEvaluator() {
 		pdfGenerator.generateEvaluationReport(evaluationResult, basicInfo);
 	};
 
-	const isProcessing = false;
+	// Determinar si mostrar la sección de propuestas
+	const shouldShowProposalSection =
+		specificationFiles.length > 0 && extractedLots.length > 0 && !isLoadingLots;
+
+	const isProcessing = isLoadingLots;
 
 	return (
 		<div
@@ -164,21 +174,118 @@ export default function OptimEvaluator() {
 							</div>
 
 							<div className="p-6">
-								<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-									<FileUploadSection
-										title="Plec de Condicions *"
-										description="PDF, DOC, DOCX - Màxim 10MB"
-										files={specificationFiles}
-										setFiles={setSpecificationFiles}
-										icon="spec"
-									/>
+								<div className="space-y-8">
+									{/* Sección de Plec de Condicions - siempre visible */}
+									<div className="transition-all duration-500 ease-in-out">
+										<FileUploadSection
+											title="Plec de Condicions *"
+											description="PDF, DOC, DOCX - Màxim 10MB"
+											files={specificationFiles}
+											setFiles={setSpecificationFiles}
+											icon="spec"
+										/>
+									</div>
 
-									<ProposalUploadSection
-										extractedLots={extractedLots}
-										proposalFiles={proposalFiles}
-										setProposalFiles={setProposalFiles}
-									/>
+									{/* Sección de Proposta per Lot - solo visible cuando hay lots extraídos */}
+									{shouldShowProposalSection && (
+										<div className="animate-slide-in-up opacity-0 animate-fade-in">
+											<div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-1 mb-4 animate-pulse-border">
+												<div className="bg-white rounded-lg p-4">
+													{/* Header con animación de aparición */}
+													<div className="flex items-center mb-4 animate-bounce-in">
+														<div className="flex items-center space-x-2">
+															<div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+															<div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-100"></div>
+															<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-200"></div>
+														</div>
+														<span className="ml-3 text-sm font-medium text-green-700">
+															{extractedLots.length > 1
+																? `${extractedLots.length} lots identificats`
+																: '1 lot identificat'}
+														</span>
+													</div>
+
+													{/* Lista de lots con animación escalonada */}
+													{extractedLots.length > 1 && (
+														<div className="mb-4 space-y-2">
+															<p className="text-xs font-medium text-gray-600 mb-2">
+																Lots Disponibles:
+															</p>
+															{extractedLots.map((lot, index) => (
+																<div
+																	key={lot.lotNumber}
+																	className="flex items-start space-x-2 text-xs text-gray-700 animate-slide-in-up"
+																	style={{
+																		animationDelay: `${index * 150}ms`,
+																		animationFillMode: 'both',
+																	}}
+																>
+																	<span className="w-5 h-5 bg-gradient-to-r from-green-400 to-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+																		{lot.lotNumber}
+																	</span>
+																	<span className="font-medium leading-relaxed">
+																		{lot.title}
+																	</span>
+																</div>
+															))}
+														</div>
+													)}
+												</div>
+											</div>
+
+											<ProposalUploadSection
+												extractedLots={extractedLots}
+												proposalFiles={proposalFiles}
+												setProposalFiles={setProposalFiles}
+											/>
+										</div>
+									)}
 								</div>
+
+								{/* Mensaje informativo cuando no hay lots disponibles */}
+								{specificationFiles.length > 0 &&
+									!shouldShowProposalSection && (
+										<div
+											className="mt-6 p-4 rounded-lg border"
+											style={{
+												backgroundColor: '#f3f4f6',
+												borderColor: '#949494',
+												borderStyle: 'dashed',
+											}}
+										>
+											<div className="text-center">
+												<div className="flex items-center justify-center mb-2">
+													{isLoadingLots ? (
+														<div
+															className="animate-spin rounded-full h-6 w-6 border-b-2"
+															style={{ borderColor: '#199875' }}
+														></div>
+													) : (
+														<Upload
+															className="h-6 w-6"
+															style={{ color: '#949494' }}
+														/>
+													)}
+												</div>
+												<p
+													className="text-sm font-medium"
+													style={{ color: '#1c1c1c' }}
+												>
+													{isLoadingLots
+														? 'Extraient informació dels lots del plec de condicions...'
+														: 'Afegeix el Plec de Condicions per continuar'}
+												</p>
+												<p
+													className="text-xs mt-1"
+													style={{ color: '#6f6f6f' }}
+												>
+													{isLoadingLots
+														? 'Això pot trigar uns segons...'
+														: 'Un cop processat, podràs afegir les propostes per cada lot identificat.'}
+												</p>
+											</div>
+										</div>
+									)}
 							</div>
 						</div>
 
