@@ -18,6 +18,59 @@ interface ProposalUploadSectionProps {
 	setProposalFiles: (files: ProposalFile[]) => void;
 }
 
+const normalizeFileName = (fileName: string): string => {
+	try {
+		let normalized = fileName;
+
+		const charReplacements: { [key: string]: string } = {
+			'Ã¨': 'è',
+			'Ã©': 'é',
+			'Ã¡': 'á',
+			'Ã­': 'í',
+			'Ã³': 'ó',
+			Ãº: 'ú',
+			'Ã¼': 'ü',
+			'Ã±': 'ñ',
+			'Ã§': 'ç',
+			'Ã ': 'à',
+			'Ã²': 'ò',
+			TeÌcnic: 'Tècnic',
+			teÌcnic: 'tècnic',
+			TeÌ: 'Tè',
+			teÌ: 'tè',
+			'Tè€cnic': 'Tècnic',
+			'tè€cnic': 'tècnic',
+			'è€': 'è',
+			'é€': 'é',
+			'à€': 'à',
+			'ò€': 'ò',
+			'ú€': 'ú',
+			'í€': 'í',
+			'ó€': 'ó',
+			'ñ€': 'ñ',
+			'ç€': 'ç',
+			'ü€': 'ü',
+		};
+
+		for (const [bad, good] of Object.entries(charReplacements)) {
+			normalized = normalized.replace(new RegExp(bad, 'g'), good);
+		}
+
+		try {
+			normalized = decodeURIComponent(escape(normalized));
+		} catch (e) {
+			console.warn('Failed to decode URI component, using replacement method');
+		}
+
+		normalized = normalized.normalize('NFC');
+
+		return normalized;
+	} catch (error) {
+		console.warn('Error normalizing filename:', error);
+		return fileName;
+	}
+};
+
 export default function ProposalUploadSection({
 	extractedLots,
 	proposalFiles,
@@ -37,6 +90,7 @@ export default function ProposalUploadSection({
 			const proposalFilesWithLot: ProposalFile[] = processedFiles.map(
 				(file) => ({
 					...file,
+					name: normalizeFileName(file.name),
 					lotNumber: selectedLot,
 				}),
 			);
@@ -101,7 +155,7 @@ export default function ProposalUploadSection({
 						<select
 							value={selectedLot}
 							onChange={(e) => setSelectedLot(Number(e.target.value))}
-							className="px-2 py-1 border rounded focus:ring-2 focus:ring-opacity-50 focus:border-transparent text-sm w-48"
+							className="px-2 py-1 border rounded focus:ring-2 focus:ring-opacity-50 focus:border-transparent text-sm w-48 cursor-pointer"
 							style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
 							title={`Lot ${selectedLot}: ${
 								extractedLots.find((l) => l.lotNumber === selectedLot)?.title ||
@@ -122,8 +176,10 @@ export default function ProposalUploadSection({
 			</div>
 
 			<div
-				className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer ${
-					dragDrop.isDragging ? 'border-blue-500 bg-blue-50' : ''
+				className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer hover:border-opacity-80 ${
+					dragDrop.isDragging
+						? 'border-blue-500 bg-blue-50'
+						: 'hover:bg-gray-50'
 				}`}
 				style={{
 					borderColor: dragDrop.isDragging ? '#3b82f6' : '#949494',
@@ -170,7 +226,9 @@ export default function ProposalUploadSection({
 								className="text-sm font-medium"
 								style={{ color: '#1c1c1c' }}
 							>
-								{processing.currentFile || 'Processant arxius...'}
+								{processing.currentFile
+									? normalizeFileName(processing.currentFile)
+									: 'Processant arxius...'}
 							</span>
 						</div>
 						<span className="text-sm" style={{ color: '#6f6f6f' }}>
@@ -235,6 +293,7 @@ export default function ProposalUploadSection({
 										{lotFiles.map((file, index) => {
 											const fileStatus = getFileStatus(file);
 											const globalIndex = proposalFiles.indexOf(file);
+											const displayName = normalizeFileName(file.name);
 
 											return (
 												<div
@@ -253,7 +312,7 @@ export default function ProposalUploadSection({
 																	className="text-sm font-medium"
 																	style={{ color: '#1c1c1c' }}
 																>
-																	{file.name}
+																	{displayName}
 																</span>
 																<div className="flex items-center space-x-3 mt-1">
 																	<p
@@ -274,7 +333,7 @@ export default function ProposalUploadSection({
 														</div>
 														<button
 															onClick={() => removeFile(globalIndex)}
-															className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+															className="text-red-600 hover:text-red-800 p-1 rounded transition-colors cursor-pointer"
 															title="Eliminar arxiu"
 														>
 															<XCircle className="h-4 w-4" />
@@ -304,7 +363,7 @@ export default function ProposalUploadSection({
 							</div>
 							<button
 								onClick={processing.clearError}
-								className="text-xs text-red-700 hover:text-red-900 underline mt-2"
+								className="text-xs text-red-700 hover:text-red-900 underline mt-2 cursor-pointer"
 							>
 								Tancar missatge
 							</button>

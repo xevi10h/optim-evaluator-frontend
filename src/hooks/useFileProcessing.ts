@@ -21,6 +21,59 @@ interface UploadResponse {
 	};
 }
 
+const normalizeFileName = (fileName: string): string => {
+	try {
+		let normalized = fileName;
+
+		const charReplacements: { [key: string]: string } = {
+			'Ã¨': 'è',
+			'Ã©': 'é',
+			'Ã¡': 'á',
+			'Ã­': 'í',
+			'Ã³': 'ó',
+			Ãº: 'ú',
+			'Ã¼': 'ü',
+			'Ã±': 'ñ',
+			'Ã§': 'ç',
+			'Ã ': 'à',
+			'Ã²': 'ò',
+			TeÌcnic: 'Tècnic',
+			teÌcnic: 'tècnic',
+			TeÌ: 'Tè',
+			teÌ: 'tè',
+			'Tè€cnic': 'Tècnic',
+			'tè€cnic': 'tècnic',
+			'è€': 'è',
+			'é€': 'é',
+			'à€': 'à',
+			'ò€': 'ò',
+			'ú€': 'ú',
+			'í€': 'í',
+			'ó€': 'ó',
+			'ñ€': 'ñ',
+			'ç€': 'ç',
+			'ü€': 'ü',
+		};
+
+		for (const [bad, good] of Object.entries(charReplacements)) {
+			normalized = normalized.replace(new RegExp(bad, 'g'), good);
+		}
+
+		try {
+			normalized = decodeURIComponent(escape(normalized));
+		} catch (e) {
+			console.warn('Failed to decode URI component, using replacement method');
+		}
+
+		normalized = normalized.normalize('NFC');
+
+		return normalized;
+	} catch (error) {
+		console.warn('Error normalizing filename:', error);
+		return fileName;
+	}
+};
+
 export function useFileProcessing() {
 	const [state, setState] = useState<ProcessingState>({
 		isProcessing: false,
@@ -48,7 +101,6 @@ export function useFileProcessing() {
 					currentFile: `Enviant ${files.length} document(s) al servidor...`,
 				}));
 
-				// Use the new API service
 				const result: UploadResponse = await apiService.uploadFiles(
 					files,
 					type,
@@ -66,16 +118,14 @@ export function useFileProcessing() {
 					currentFile: `Processament completat: ${result.summary.successful} document(s) processats amb èxit.`,
 				}));
 
-				// Convert processed files to the format expected by the frontend
 				const processedFiles: FileWithContent[] = result.files
 					.filter((file) => file.success)
 					.map((file) => ({
 						file: files.find((f) => f.name === file.name)!,
 						content: file.content,
-						name: file.name,
+						name: normalizeFileName(file.name),
 					}));
 
-				// Handle failed files
 				const failedFiles = result.files.filter((file) => !file.success);
 
 				let errorMessage = '';
@@ -83,7 +133,7 @@ export function useFileProcessing() {
 				if (failedFiles.length > 0) {
 					errorMessage += `❌ ${failedFiles.length} documents(s) no han pogut ser processats:\n`;
 					errorMessage += failedFiles
-						.map((f) => `- ${f.name}: ${f.error}`)
+						.map((f) => `- ${normalizeFileName(f.name)}: ${f.error}`)
 						.join('\n');
 				}
 
@@ -146,7 +196,6 @@ export function useFileProcessing() {
 	};
 }
 
-// Keep the drag and drop hook without changes
 export function useDragAndDrop() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragCounter, setDragCounter] = useState(0);

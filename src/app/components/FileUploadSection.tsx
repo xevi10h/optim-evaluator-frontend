@@ -23,13 +23,10 @@ interface FileUploadSectionProps {
 	icon: 'spec' | 'proposal';
 }
 
-// Function to clean and normalize file names
 const normalizeFileName = (fileName: string): string => {
 	try {
-		// Decode possible malformed characters
 		let normalized = fileName;
 
-		// Replace common malformed characters
 		const charReplacements: { [key: string]: string } = {
 			'Ã¨': 'è',
 			'Ã©': 'é',
@@ -46,14 +43,30 @@ const normalizeFileName = (fileName: string): string => {
 			teÌcnic: 'tècnic',
 			TeÌ: 'Tè',
 			teÌ: 'tè',
+			'Tè€cnic': 'Tècnic',
+			'tè€cnic': 'tècnic',
+			'è€': 'è',
+			'é€': 'é',
+			'à€': 'à',
+			'ò€': 'ò',
+			'ú€': 'ú',
+			'í€': 'í',
+			'ó€': 'ó',
+			'ñ€': 'ñ',
+			'ç€': 'ç',
+			'ü€': 'ü',
 		};
 
-		// Apply replacements
 		for (const [bad, good] of Object.entries(charReplacements)) {
 			normalized = normalized.replace(new RegExp(bad, 'g'), good);
 		}
 
-		// Normalize using Unicode normalization
+		try {
+			normalized = decodeURIComponent(escape(normalized));
+		} catch (e) {
+			console.warn('Failed to decode URI component, using replacement method');
+		}
+
 		normalized = normalized.normalize('NFC');
 
 		return normalized;
@@ -83,7 +96,6 @@ export default function FileUploadSection({
 			const type = icon === 'spec' ? 'specification' : 'proposal';
 			const processedFiles = await processing.processFiles(selectedFiles, type);
 
-			// Normalize file names after processing
 			const normalizedFiles = processedFiles.map((file) => ({
 				...file,
 				name: normalizeFileName(file.name),
@@ -131,13 +143,17 @@ export default function FileUploadSection({
 
 	return (
 		<div>
-			<h4 className="text-md font-medium mb-4" style={{ color: '#1c1c1c' }}>
-				{title}
-			</h4>
+			{title && (
+				<h4 className="text-md font-medium mb-4" style={{ color: '#1c1c1c' }}>
+					{title}
+				</h4>
+			)}
 
 			<div
-				className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-opacity-80 transition-colors cursor-pointer ${
-					dragDrop.isDragging ? 'border-blue-500 bg-blue-50' : ''
+				className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer hover:border-opacity-80 ${
+					dragDrop.isDragging
+						? 'border-blue-500 bg-blue-50'
+						: 'hover:bg-gray-50'
 				}`}
 				style={{
 					borderColor: dragDrop.isDragging ? '#3b82f6' : '#949494',
@@ -252,7 +268,7 @@ export default function FileUploadSection({
 												</span>
 												<button
 													onClick={() => removeFile(index)}
-													className="text-red-600 hover:text-red-800 ml-2 p-1 rounded transition-colors"
+													className="text-red-600 hover:text-red-800 ml-2 p-1 rounded transition-colors cursor-pointer"
 													title="Eliminar arxiu"
 												>
 													<XCircle className="h-4 w-4" />
@@ -314,7 +330,7 @@ export default function FileUploadSection({
 							<div className="mt-3 flex space-x-2">
 								<button
 									onClick={processing.clearError}
-									className="text-xs text-red-700 hover:text-red-900 underline"
+									className="text-xs text-red-700 hover:text-red-900 underline cursor-pointer"
 								>
 									Tancar missatge
 								</button>

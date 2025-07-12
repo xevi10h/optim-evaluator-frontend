@@ -50,8 +50,10 @@ export default function EvaluationControl({
 				<button
 					onClick={onEvaluate}
 					disabled={isDisabled}
-					className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white ${
-						isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
+					className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 text-white ${
+						isDisabled
+							? 'cursor-not-allowed opacity-60'
+							: 'cursor-pointer hover:shadow-lg transform hover:scale-105'
 					}`}
 					style={{
 						backgroundColor: isDisabled ? '#949494' : '#199875',

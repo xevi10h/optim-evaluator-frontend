@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { FileText } from 'lucide-react';
+import Tooltip from './Tooltip';
 import type { BasicInfo } from '@/types';
 
 interface BasicInfoFormProps {

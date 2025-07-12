@@ -8,6 +8,7 @@ import FileUploadSection from './FileUploadSection';
 import ProposalUploadSection from './ProposalUploadSection';
 import EvaluationControl from './EvaluationControl';
 import EvaluationResults from './EvaluationResults';
+import Tooltip from './Tooltip';
 import { apiService } from '@/lib/apiService';
 import { PDFGeneratorService } from '@/lib/pdfGenerator';
 import type {
@@ -38,7 +39,6 @@ export default function OptimEvaluator() {
 	const [error, setError] = useState<string | null>(null);
 	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
 
-	// Extract lots when specification files change
 	useEffect(() => {
 		const extractLots = async () => {
 			if (specificationFiles.length === 0) {
@@ -62,16 +62,13 @@ export default function OptimEvaluator() {
 				if (lots.length > 0) {
 					setExtractedLots(lots);
 				} else {
-					// If no multiple lots found, use single lot as default
 					setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
 				}
 
-				// Reset proposal files when lots change
 				setProposalFiles([]);
 				setEvaluationStatus('');
 			} catch (err) {
 				console.error('Error extracting lots:', err);
-				// In case of error, use single lot as default
 				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
 				setProposalFiles([]);
 				setEvaluationStatus('');
@@ -142,7 +139,6 @@ export default function OptimEvaluator() {
 		pdfGenerator.generateEvaluationReport(evaluationResult, basicInfo);
 	};
 
-	// Determine whether to show the proposals section
 	const shouldShowProposalSection =
 		specificationFiles.length > 0 && extractedLots.length > 0 && !isLoadingLots;
 
@@ -175,7 +171,6 @@ export default function OptimEvaluator() {
 
 							<div className="p-6">
 								<div className="space-y-8">
-									{/* Specification documents section - always visible */}
 									<div className="transition-all duration-500 ease-in-out">
 										<div className="flex items-center mb-4">
 											<h4
@@ -184,17 +179,14 @@ export default function OptimEvaluator() {
 											>
 												Plecs de Condicions *
 											</h4>
-											<div className="relative ml-2 group">
-												<div className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold cursor-help">
+											<Tooltip
+												content="Aquí s'han d'afegir els Plecs Tècnics, els Plecs Administratius o un sol document que els agrupi els dos."
+												position="top"
+											>
+												<div className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold ml-2 cursor-help">
 													i
 												</div>
-												<div className="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap z-50 max-w-xs">
-													Aquí s'han d'afegir els Plecs Tècnics, els Plecs
-													Administratius o un sol document que els agrupi els
-													dos
-													<div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-												</div>
-											</div>
+											</Tooltip>
 										</div>
 										<FileUploadSection
 											title=""
@@ -205,12 +197,10 @@ export default function OptimEvaluator() {
 										/>
 									</div>
 
-									{/* Proposal per lot section - only visible when lots are extracted */}
 									{shouldShowProposalSection && (
 										<div className="animate-slide-in-up opacity-0 animate-fade-in">
 											<div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-1 mb-4 animate-pulse-border">
 												<div className="bg-white rounded-lg p-4">
-													{/* Header with appearance animation */}
 													<div className="flex items-center mb-4 animate-bounce-in">
 														<div className="flex items-center space-x-2">
 															<div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
@@ -224,7 +214,6 @@ export default function OptimEvaluator() {
 														</span>
 													</div>
 
-													{/* List of lots with staggered animation */}
 													{extractedLots.length > 1 && (
 														<div className="mb-4 space-y-2">
 															<p className="text-xs font-medium text-gray-600 mb-2">
@@ -261,7 +250,6 @@ export default function OptimEvaluator() {
 									)}
 								</div>
 
-								{/* Informative message when no lots are available */}
 								{specificationFiles.length > 0 &&
 									!shouldShowProposalSection && (
 										<div
