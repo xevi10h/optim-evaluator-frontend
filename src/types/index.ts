@@ -8,7 +8,7 @@ export interface FileContent {
 	name: string;
 	content: string;
 	type: 'specification' | 'proposal';
-	lotNumber?: number; // For proposals, indicates which lot this file is for
+	lotNumber?: number;
 }
 
 export interface LotInfo {

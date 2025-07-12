@@ -23,6 +23,46 @@ interface FileUploadSectionProps {
 	icon: 'spec' | 'proposal';
 }
 
+// Function to clean and normalize file names
+const normalizeFileName = (fileName: string): string => {
+	try {
+		// Decode possible malformed characters
+		let normalized = fileName;
+
+		// Replace common malformed characters
+		const charReplacements: { [key: string]: string } = {
+			'Ã¨': 'è',
+			'Ã©': 'é',
+			'Ã¡': 'á',
+			'Ã­': 'í',
+			'Ã³': 'ó',
+			Ãº: 'ú',
+			'Ã¼': 'ü',
+			'Ã±': 'ñ',
+			'Ã§': 'ç',
+			'Ã ': 'à',
+			'Ã²': 'ò',
+			TeÌcnic: 'Tècnic',
+			teÌcnic: 'tècnic',
+			TeÌ: 'Tè',
+			teÌ: 'tè',
+		};
+
+		// Apply replacements
+		for (const [bad, good] of Object.entries(charReplacements)) {
+			normalized = normalized.replace(new RegExp(bad, 'g'), good);
+		}
+
+		// Normalize using Unicode normalization
+		normalized = normalized.normalize('NFC');
+
+		return normalized;
+	} catch (error) {
+		console.warn('Error normalizing filename:', error);
+		return fileName;
+	}
+};
+
 export default function FileUploadSection({
 	title,
 	description,
@@ -37,13 +77,20 @@ export default function FileUploadSection({
 	const handleFiles = async (selectedFiles: File[]) => {
 		try {
 			console.log(
-				'Procesando archivos:',
+				'Processing files:',
 				selectedFiles.map((f) => f.name),
 			);
 			const type = icon === 'spec' ? 'specification' : 'proposal';
 			const processedFiles = await processing.processFiles(selectedFiles, type);
-			console.log('Archivos procesados:', processedFiles.length);
-			setFiles([...files, ...processedFiles]);
+
+			// Normalize file names after processing
+			const normalizedFiles = processedFiles.map((file) => ({
+				...file,
+				name: normalizeFileName(file.name),
+			}));
+
+			console.log('Files processed:', normalizedFiles.length);
+			setFiles([...files, ...normalizedFiles]);
 		} catch (err) {
 			console.error('Error processing files:', err);
 		}
@@ -136,7 +183,9 @@ export default function FileUploadSection({
 								className="text-sm font-medium"
 								style={{ color: '#1c1c1c' }}
 							>
-								{processing.currentFile || 'Processant arxius...'}
+								{processing.currentFile
+									? normalizeFileName(processing.currentFile)
+									: 'Processant arxius...'}
 							</span>
 						</div>
 						<div className="flex items-center space-x-2">
@@ -178,6 +227,7 @@ export default function FileUploadSection({
 
 					{files.map((file, index) => {
 						const fileStatus = getFileStatus(file);
+						const displayName = normalizeFileName(file.name);
 
 						return (
 							<div
@@ -196,8 +246,9 @@ export default function FileUploadSection({
 												<span
 													className="text-sm font-medium"
 													style={{ color: '#1c1c1c' }}
+													title={displayName}
 												>
-													{file.name}
+													{displayName}
 												</span>
 												<button
 													onClick={() => removeFile(index)}

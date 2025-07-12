@@ -2,14 +2,12 @@
 
 import React, { useRef, useState } from 'react';
 import {
-	Upload,
 	FileText,
 	CheckCircle,
 	XCircle,
 	Loader2,
 	AlertTriangle,
 	Package,
-	Plus,
 } from 'lucide-react';
 import type { ProposalFile, LotInfo } from '@/types';
 import { useFileProcessing, useDragAndDrop } from '@/hooks/useFileProcessing';

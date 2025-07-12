@@ -325,7 +325,7 @@ export default function EvaluationResults({
 				<div className="flex justify-center mt-8">
 					<button
 						onClick={onDownloadPDF}
-						className="px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white"
+						className="px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white cursor-pointer"
 						style={{ backgroundColor: '#199875' }}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.backgroundColor = '#188869';

@@ -1,4 +1,3 @@
-// src/lib/apiService.ts
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -152,7 +151,7 @@ class ApiService {
 
 export const apiService = new ApiService();
 
-// Hook personalizado para usar el servicio API
+// Custom hook to manage API requests and loading/error states
 import { useState } from 'react';
 
 export function useApiService() {

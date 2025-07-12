@@ -45,10 +45,10 @@ export function useFileProcessing() {
 				setState((prev) => ({
 					...prev,
 					progress: 25,
-					currentFile: `Enviando ${files.length} archivo(s) al servidor...`,
+					currentFile: `Sending ${files.length} file(s) to server...`,
 				}));
 
-				// Usar el nuevo servicio API
+				// Use the new API service
 				const result: UploadResponse = await apiService.uploadFiles(
 					files,
 					type,
@@ -57,16 +57,16 @@ export function useFileProcessing() {
 				setState((prev) => ({
 					...prev,
 					progress: 75,
-					currentFile: 'Procesando respuesta del servidor...',
+					currentFile: 'Processing server response...',
 				}));
 
 				setState((prev) => ({
 					...prev,
 					progress: 100,
-					currentFile: 'Completado',
+					currentFile: 'Completed',
 				}));
 
-				// Convertir los archivos procesados al formato esperado por el frontend
+				// Convert processed files to the format expected by the frontend
 				const processedFiles: FileWithContent[] = result.files
 					.filter((file) => file.success)
 					.map((file) => ({
@@ -75,13 +75,13 @@ export function useFileProcessing() {
 						name: file.name,
 					}));
 
-				// Manejar archivos fallidos
+				// Handle failed files
 				const failedFiles = result.files.filter((file) => !file.success);
 
 				let errorMessage = '';
 
 				if (failedFiles.length > 0) {
-					errorMessage += `❌ ${failedFiles.length} archivo(s) no se pudieron procesar:\n`;
+					errorMessage += `❌ ${failedFiles.length} file(s) could not be processed:\n`;
 					errorMessage += failedFiles
 						.map((f) => `- ${f.name}: ${f.error}`)
 						.join('\n');
@@ -95,19 +95,19 @@ export function useFileProcessing() {
 				}
 
 				console.log(
-					`✅ Procesados ${processedFiles.length}/${files.length} archivos correctamente`,
+					`✅ Processed ${processedFiles.length}/${files.length} files successfully`,
 				);
 
 				return processedFiles;
 			} catch (error) {
 				const errorMessage =
-					error instanceof Error ? error.message : 'Error desconocido';
-				console.error('❌ Error en el procesamiento:', errorMessage);
+					error instanceof Error ? error.message : 'Unknown error';
+				console.error('❌ Error in processing:', errorMessage);
 
 				setState({
 					isProcessing: false,
 					currentFile: null,
-					error: `Error procesando archivos: ${errorMessage}`,
+					error: `Error processing files: ${errorMessage}`,
 					progress: 0,
 				});
 				throw error;
@@ -146,7 +146,7 @@ export function useFileProcessing() {
 	};
 }
 
-// Mantener el hook de drag and drop sin cambios
+// Keep the drag and drop hook without changes
 export function useDragAndDrop() {
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragCounter, setDragCounter] = useState(0);
@@ -202,7 +202,7 @@ export function useDragAndDrop() {
 			});
 
 			if (supportedFiles.length === 0) {
-				console.warn('No se han encontrado archivos soportados');
+				console.warn('No supported files found');
 				return;
 			}
 
