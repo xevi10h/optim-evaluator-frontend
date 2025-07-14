@@ -1,7 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Package, AlertTriangle, FileText, Users } from 'lucide-react';
+import {
+	Package,
+	AlertTriangle,
+	FileText,
+	Users,
+	CheckCircle,
+	AlertCircle,
+	XCircle,
+} from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import ProposalEvaluation from './ProposalEvaluation';
 import ComparisonComponent from './ComparisonComponent';
@@ -45,7 +53,7 @@ export default function LotEvaluationComponent({
 							Lot {lotInfo.lotNumber}: {lotInfo.title}
 						</h4>
 						<div
-							className="flex items-center space-x-1 px-3 py-1 rounded-full animate-pulse"
+							className="flex items-center space-x-1 px-3 py-1 rounded-full"
 							style={{ backgroundColor: '#fff3cd' }}
 						>
 							<AlertTriangle className="h-4 w-4" style={{ color: '#856404' }} />
@@ -91,7 +99,7 @@ export default function LotEvaluationComponent({
 					</h4>
 					{proposalsWithEvaluations.length > 1 && (
 						<div
-							className="flex items-center space-x-1 px-3 py-1 rounded-full animate-pulse"
+							className="flex items-center space-x-1 px-3 py-1 rounded-full"
 							style={{ backgroundColor: '#dfe7e6' }}
 						>
 							<Users className="h-4 w-4" style={{ color: '#199875' }} />
@@ -137,7 +145,55 @@ export default function LotEvaluationComponent({
 								: averageScore >= 2
 								? '#f59e0b'
 								: '#dc2626';
-						const badgeText = `${excellentCount}✓ ${regularCount}○ ${insufficientCount}✗`;
+
+						// Crear badge con mejor separación e iconos
+						const createScoreBadge = () => {
+							const items = [];
+
+							if (excellentCount > 0) {
+								items.push(
+									<div
+										key="excellent"
+										className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full"
+									>
+										<CheckCircle className="h-3 w-3 text-green-600" />
+										<span className="text-xs font-medium text-green-700">
+											{excellentCount}
+										</span>
+									</div>,
+								);
+							}
+
+							if (regularCount > 0) {
+								items.push(
+									<div
+										key="regular"
+										className="flex items-center space-x-1 bg-yellow-100 px-2 py-1 rounded-full"
+									>
+										<AlertCircle className="h-3 w-3 text-yellow-600" />
+										<span className="text-xs font-medium text-yellow-700">
+											{regularCount}
+										</span>
+									</div>,
+								);
+							}
+
+							if (insufficientCount > 0) {
+								items.push(
+									<div
+										key="insufficient"
+										className="flex items-center space-x-1 bg-red-100 px-2 py-1 rounded-full"
+									>
+										<XCircle className="h-3 w-3 text-red-600" />
+										<span className="text-xs font-medium text-red-700">
+											{insufficientCount}
+										</span>
+									</div>,
+								);
+							}
+
+							return <div className="flex items-center space-x-2">{items}</div>;
+						};
 
 						return (
 							<div
@@ -160,8 +216,9 @@ export default function LotEvaluationComponent({
 										/>
 									}
 									isOpenByDefault={evalIndex === 0}
-									badgeText={badgeText}
+									badgeText=""
 									badgeColor={badgeColor}
+									customBadge={createScoreBadge()}
 									headerBgColor="#f8f9fa"
 									className="transition-all duration-300 hover:shadow-md"
 								>

@@ -11,65 +11,13 @@ import {
 } from 'lucide-react';
 import type { ProposalFile, LotInfo } from '@/types';
 import { useFileProcessing, useDragAndDrop } from '@/hooks/useFileProcessing';
+import { normalizeFileName, hasEncodingIssues } from '@/lib/fileUtils';
 
 interface ProposalUploadSectionProps {
 	extractedLots: LotInfo[];
 	proposalFiles: ProposalFile[];
 	setProposalFiles: (files: ProposalFile[]) => void;
 }
-
-const normalizeFileName = (fileName: string): string => {
-	try {
-		let normalized = fileName;
-
-		const charReplacements: { [key: string]: string } = {
-			'Ã¨': 'è',
-			'Ã©': 'é',
-			'Ã¡': 'á',
-			'Ã­': 'í',
-			'Ã³': 'ó',
-			Ãº: 'ú',
-			'Ã¼': 'ü',
-			'Ã±': 'ñ',
-			'Ã§': 'ç',
-			'Ã ': 'à',
-			'Ã²': 'ò',
-			TeÌcnic: 'Tècnic',
-			teÌcnic: 'tècnic',
-			TeÌ: 'Tè',
-			teÌ: 'tè',
-			'Tè€cnic': 'Tècnic',
-			'tè€cnic': 'tècnic',
-			'è€': 'è',
-			'é€': 'é',
-			'à€': 'à',
-			'ò€': 'ò',
-			'ú€': 'ú',
-			'í€': 'í',
-			'ó€': 'ó',
-			'ñ€': 'ñ',
-			'ç€': 'ç',
-			'ü€': 'ü',
-		};
-
-		for (const [bad, good] of Object.entries(charReplacements)) {
-			normalized = normalized.replace(new RegExp(bad, 'g'), good);
-		}
-
-		try {
-			normalized = decodeURIComponent(escape(normalized));
-		} catch (e) {
-			console.warn('Failed to decode URI component, using replacement method');
-		}
-
-		normalized = normalized.normalize('NFC');
-
-		return normalized;
-	} catch (error) {
-		console.warn('Error normalizing filename:', error);
-		return fileName;
-	}
-};
 
 export default function ProposalUploadSection({
 	extractedLots,
@@ -291,6 +239,7 @@ export default function ProposalUploadSection({
 											const fileStatus = getFileStatus(file);
 											const globalIndex = proposalFiles.indexOf(file);
 											const displayName = normalizeFileName(file.name);
+											const hadEncodingIssues = hasEncodingIssues(file.name);
 
 											return (
 												<div
@@ -305,12 +254,19 @@ export default function ProposalUploadSection({
 														<div className="flex items-center space-x-3">
 															{fileStatus.icon}
 															<div>
-																<span
-																	className="text-sm font-medium"
-																	style={{ color: '#1c1c1c' }}
-																>
-																	{displayName}
-																</span>
+																<div className="flex items-center space-x-2">
+																	<span
+																		className="text-sm font-medium"
+																		style={{ color: '#1c1c1c' }}
+																	>
+																		{displayName}
+																	</span>
+																	{hadEncodingIssues && (
+																		<span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+																			✓ Corregit
+																		</span>
+																	)}
+																</div>
 																<div className="flex items-center space-x-3 mt-1">
 																	<p
 																		className="text-xs"

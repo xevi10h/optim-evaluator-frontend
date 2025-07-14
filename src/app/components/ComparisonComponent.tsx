@@ -8,6 +8,9 @@ import {
 	Users,
 	Loader2,
 	CheckCircle,
+	Star,
+	Award,
+	TrendingUp,
 } from 'lucide-react';
 import type {
 	ProposalComparison,
@@ -127,39 +130,75 @@ export default function ComparisonComponent({
 
 	if (!comparison && !isComparing) {
 		return (
-			<div className="border-t mt-6 pt-6" style={{ borderColor: '#dfe7e6' }}>
-				<div className="flex items-center justify-between">
-					<div className="flex items-center space-x-3">
-						<GitCompare className="h-5 w-5" style={{ color: '#199875' }} />
+			<div className="p-6">
+				<div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-8 text-center border border-blue-200">
+					<div className="flex items-center justify-center space-x-3 mb-6">
+						<div className="p-3 bg-blue-200 rounded-full">
+							<GitCompare className="h-8 w-8 text-blue-700" />
+						</div>
 						<div>
-							<h4
-								className="text-lg font-semibold"
-								style={{ color: '#1c1c1c' }}
-							>
+							<h4 className="text-xl font-bold text-blue-900 mb-2">
 								Comparació entre Propostes
 							</h4>
-							<p className="text-sm" style={{ color: '#6f6f6f' }}>
-								Compara {evaluatedProposals.length} propostes per aquest lot
+							<p className="text-blue-700">
+								Compara {evaluatedProposals.length} propostes per aquest lot amb
+								anàlisi detallada
 							</p>
 						</div>
 					</div>
+
+					<div className="grid grid-cols-3 gap-4 mb-6">
+						<div className="bg-white rounded-lg p-4 border border-blue-200">
+							<div className="flex items-center justify-center mb-2">
+								<Award className="h-6 w-6 text-blue-600" />
+							</div>
+							<p className="text-sm font-medium text-blue-900">
+								Rànking Global
+							</p>
+							<p className="text-xs text-blue-700">
+								Posicionament de cada proposta
+							</p>
+						</div>
+						<div className="bg-white rounded-lg p-4 border border-blue-200">
+							<div className="flex items-center justify-center mb-2">
+								<TrendingUp className="h-6 w-6 text-blue-600" />
+							</div>
+							<p className="text-sm font-medium text-blue-900">
+								Anàlisi per Criteris
+							</p>
+							<p className="text-xs text-blue-700">Comparació detallada</p>
+						</div>
+						<div className="bg-white rounded-lg p-4 border border-blue-200">
+							<div className="flex items-center justify-center mb-2">
+								<Star className="h-6 w-6 text-blue-600" />
+							</div>
+							<p className="text-sm font-medium text-blue-900">Recomanacions</p>
+							<p className="text-xs text-blue-700">Punts forts i febles</p>
+						</div>
+					</div>
+
 					<button
 						onClick={handleCompare}
-						className="px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white cursor-pointer"
-						style={{ backgroundColor: '#199875' }}
+						className="px-8 py-4 rounded-xl font-semibold flex items-center space-x-3 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 shadow-lg mx-auto"
+						style={{
+							background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+						}}
 						onMouseEnter={(e) => {
-							e.currentTarget.style.backgroundColor = '#188869';
+							e.currentTarget.style.background =
+								'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)';
 						}}
 						onMouseLeave={(e) => {
-							e.currentTarget.style.backgroundColor = '#199875';
+							e.currentTarget.style.background =
+								'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
 						}}
 					>
 						<GitCompare className="h-5 w-5" />
-						<span>Comparar Propostes</span>
+						<span>Iniciar Comparació</span>
 					</button>
 				</div>
+
 				{error && (
-					<div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+					<div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
 						<p className="text-sm text-red-800">{error}</p>
 					</div>
 				)}
@@ -169,21 +208,26 @@ export default function ComparisonComponent({
 
 	if (isComparing) {
 		return (
-			<div className="border-t mt-6 pt-6" style={{ borderColor: '#dfe7e6' }}>
-				<div className="text-center py-8">
-					<Loader2
-						className="h-8 w-8 mx-auto mb-4 animate-spin"
-						style={{ color: '#199875' }}
-					/>
-					<h4
-						className="text-lg font-semibold mb-2"
-						style={{ color: '#1c1c1c' }}
-					>
+			<div className="p-6">
+				<div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-8 text-center border border-green-200">
+					<Loader2 className="h-12 w-12 mx-auto mb-6 animate-spin text-green-600" />
+					<h4 className="text-xl font-bold text-green-900 mb-3">
 						Comparant Propostes...
 					</h4>
-					<p className="text-sm" style={{ color: '#6f6f6f' }}>
+					<p className="text-green-700 mb-4">
 						Analitzant les diferències i similituds entre les propostes
 					</p>
+					<div className="flex items-center justify-center space-x-2 text-sm text-green-600">
+						<div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+						<div
+							className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+							style={{ animationDelay: '0.1s' }}
+						></div>
+						<div
+							className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+							style={{ animationDelay: '0.2s' }}
+						></div>
+					</div>
 				</div>
 			</div>
 		);
@@ -191,19 +235,13 @@ export default function ComparisonComponent({
 
 	if (!comparison) {
 		return (
-			<div className="border-t mt-6 pt-6" style={{ borderColor: '#dfe7e6' }}>
-				<div className="text-center py-8">
-					<CheckCircle
-						className="h-8 w-8 mx-auto mb-4"
-						style={{ color: '#199875' }}
-					/>
-					<h4
-						className="text-lg font-semibold mb-2"
-						style={{ color: '#1c1c1c' }}
-					>
+			<div className="p-6">
+				<div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 text-center border border-gray-200">
+					<CheckCircle className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+					<h4 className="text-xl font-bold text-gray-900 mb-2">
 						No hi ha dades per comparar
 					</h4>
-					<p className="text-sm" style={{ color: '#6f6f6f' }}>
+					<p className="text-gray-600">
 						Assegureu-vos que les propostes estan avaluades i els fitxers de
 						especificacions estan carregats.
 					</p>
@@ -213,70 +251,78 @@ export default function ComparisonComponent({
 	}
 
 	return (
-		<div className="border-t mt-6 pt-6" style={{ borderColor: '#dfe7e6' }}>
-			<div
-				className="px-6 py-4 mb-6"
-				style={{
-					background: 'linear-gradient(135deg, #199875 0%, #188869 100%)',
-					borderRadius: '12px',
-				}}
-			>
-				<h3 className="text-xl font-semibold text-white flex items-center">
-					<GitCompare className="mr-2 h-5 w-5" />
-					Comparació de Propostes - Lot {lotInfo.lotNumber}
-				</h3>
-				<p className="text-sm text-white opacity-90 mt-1">
-					Anàlisi comparatiu entre {comparison.proposalNames.length} propostes |
-					Confiança: {Math.round(comparison.confidence * 100)}%
-				</p>
+		<div className="p-6 space-y-8">
+			{/* Header mejorado */}
+			<div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-6 text-white">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center space-x-4">
+						<div className="p-3 bg-white bg-opacity-20 rounded-full">
+							<GitCompare className="h-8 w-8" />
+						</div>
+						<div>
+							<h3 className="text-2xl font-bold">Comparació de Propostes</h3>
+							<p className="text-blue-100">
+								Lot {lotInfo.lotNumber}: {lotInfo.title}
+							</p>
+						</div>
+					</div>
+					<div className="text-right">
+						<p className="text-sm opacity-90">
+							{comparison.proposalNames.length} propostes analitzades
+						</p>
+						<p className="text-lg font-semibold">
+							Confiança: {Math.round(comparison.confidence * 100)}%
+						</p>
+					</div>
+				</div>
 			</div>
 
-			{/* Summary */}
-			<div
-				className="rounded-lg p-6 mb-6"
-				style={{ backgroundColor: '#dfe7e6' }}
-			>
-				<h4 className="text-lg font-semibold mb-3" style={{ color: '#1c1c1c' }}>
+			{/* Summary mejorado */}
+			<div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
+				<h4 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+					<div className="p-2 bg-slate-200 rounded-lg mr-3">
+						<CheckCircle className="h-6 w-6 text-slate-700" />
+					</div>
 					Resum Executiu de la Comparació
 				</h4>
-				<p className="leading-relaxed" style={{ color: '#6f6f6f' }}>
-					{comparison.summary}
-				</p>
+				<div className="bg-white p-5 rounded-lg border border-slate-200">
+					<p className="leading-relaxed text-slate-700">{comparison.summary}</p>
+				</div>
 			</div>
 
-			{/* Global Ranking */}
-			<div className="mb-8">
-				<h4
-					className="text-lg font-semibold mb-4 flex items-center"
-					style={{ color: '#1c1c1c' }}
-				>
-					<Trophy className="h-5 w-5 mr-2" style={{ color: '#199875' }} />
+			{/* Global Ranking mejorado */}
+			<div>
+				<h4 className="text-xl font-bold text-slate-900 mb-6 flex items-center">
+					<div className="p-2 bg-yellow-100 rounded-lg mr-3">
+						<Trophy className="h-6 w-6 text-yellow-600" />
+					</div>
 					Rànking Global
 				</h4>
-				<div className="space-y-4">
+				<div className="space-y-6">
 					{comparison.globalRanking.map((ranking, index) => (
 						<div
 							key={ranking.proposalName}
-							className="border rounded-lg p-6"
-							style={{
-								borderColor: index === 0 ? '#199875' : '#dfe7e6',
-								backgroundColor: index === 0 ? '#f0fdf4' : '#ffffff',
-							}}
+							className={`rounded-xl p-6 border-2 transition-all duration-300 hover:shadow-lg ${
+								index === 0
+									? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
+									: 'border-slate-200 bg-white hover:border-slate-300'
+							}`}
 						>
-							<div className="flex items-start justify-between mb-4">
-								<div className="flex items-center space-x-3">
-									<span className="text-2xl">
+							<div className="flex items-start justify-between mb-6">
+								<div className="flex items-center space-x-4">
+									<div
+										className={`text-4xl ${
+											index === 0 ? 'animate-bounce' : ''
+										}`}
+									>
 										{getPositionIcon(ranking.position)}
-									</span>
+									</div>
 									<div>
-										<h5
-											className="text-lg font-semibold"
-											style={{ color: '#1c1c1c' }}
-										>
+										<h5 className="text-xl font-bold text-slate-900">
 											{ranking.proposalName}
 										</h5>
 										<span
-											className="px-3 py-1 rounded-full text-sm font-medium text-white"
+											className="inline-block px-4 py-2 rounded-full text-sm font-semibold text-white mt-2"
 											style={{
 												backgroundColor: getOverallScoreColor(
 													ranking.overallScore,
@@ -289,23 +335,21 @@ export default function ComparisonComponent({
 								</div>
 							</div>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+							<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 								{ranking.strengths.length > 0 && (
-									<div>
-										<h6
-											className="font-medium mb-2"
-											style={{ color: '#199875' }}
-										>
+									<div className="bg-green-50 rounded-lg p-4 border border-green-200">
+										<h6 className="font-bold text-green-800 mb-3 flex items-center">
+											<Star className="h-4 w-4 mr-2" />
 											Punts Forts Principals
 										</h6>
-										<ul className="space-y-1">
+										<ul className="space-y-2">
 											{ranking.strengths.map((strength, i) => (
 												<li
 													key={i}
-													className="text-sm"
-													style={{ color: '#188869' }}
+													className="text-sm text-green-700 flex items-start"
 												>
-													• {strength}
+													<span className="text-green-500 mr-2 mt-1">•</span>
+													<span>{strength}</span>
 												</li>
 											))}
 										</ul>
@@ -313,14 +357,18 @@ export default function ComparisonComponent({
 								)}
 
 								{ranking.weaknesses.length > 0 && (
-									<div>
-										<h6 className="font-medium mb-2 text-red-700">
+									<div className="bg-red-50 rounded-lg p-4 border border-red-200">
+										<h6 className="font-bold text-red-800 mb-3">
 											Punts Febles Principals
 										</h6>
-										<ul className="space-y-1">
+										<ul className="space-y-2">
 											{ranking.weaknesses.map((weakness, i) => (
-												<li key={i} className="text-sm text-red-600">
-													• {weakness}
+												<li
+													key={i}
+													className="text-sm text-red-700 flex items-start"
+												>
+													<span className="text-red-500 mr-2 mt-1">•</span>
+													<span>{weakness}</span>
 												</li>
 											))}
 										</ul>
@@ -328,17 +376,11 @@ export default function ComparisonComponent({
 								)}
 							</div>
 
-							<div
-								className="rounded-lg p-4"
-								style={{
-									backgroundColor: '#f8f9fa',
-									borderLeft: '4px solid #199875',
-								}}
-							>
-								<h6 className="font-medium mb-2" style={{ color: '#1c1c1c' }}>
+							<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+								<h6 className="font-bold text-blue-800 mb-2">
 									Recomanació Específica
 								</h6>
-								<p className="text-sm" style={{ color: '#6f6f6f' }}>
+								<p className="text-sm text-blue-700">
 									{ranking.recommendation}
 								</p>
 							</div>
@@ -347,61 +389,110 @@ export default function ComparisonComponent({
 				</div>
 			</div>
 
-			{/* Criteria Comparison Table */}
-			<div className="mb-8">
-				<h4
-					className="text-lg font-semibold mb-4 flex items-center"
-					style={{ color: '#1c1c1c' }}
-				>
-					<Users className="h-5 w-5 mr-2" style={{ color: '#199875' }} />
+			{/* Criteria Comparison Table mejorado */}
+			<div>
+				<h4 className="text-xl font-bold text-slate-900 mb-6 flex items-center">
+					<div className="p-2 bg-purple-100 rounded-lg mr-3">
+						<Users className="h-6 w-6 text-purple-600" />
+					</div>
 					Comparació Detallada per Criteris
 				</h4>
 
-				<div className="overflow-x-auto">
-					<table className="w-full border-collapse border border-gray-300">
-						<thead>
-							<tr style={{ backgroundColor: '#dfe7e6' }}>
-								<th
-									className="border border-gray-300 px-4 py-3 text-left font-semibold"
-									style={{ color: '#1c1c1c' }}
-								>
-									Criteri
-								</th>
-								{comparison.proposalNames.map((name) => (
-									<th
-										key={name}
-										className="border border-gray-300 px-4 py-3 text-center font-semibold"
-										style={{ color: '#1c1c1c' }}
-									>
-										{name}
+				<div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+					<div className="overflow-x-auto">
+						<table className="w-full">
+							<thead className="bg-gradient-to-r from-slate-100 to-slate-200">
+								<tr>
+									<th className="px-6 py-4 text-left font-bold text-slate-900 border-b border-slate-300">
+										Criteri
 									</th>
-								))}
-							</tr>
-						</thead>
-						<tbody>
-							{comparison.criteriaComparisons.map((criterionComp, index) => (
-								<tr
-									key={index}
-									className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
-								>
-									<td
-										className="border border-gray-300 px-4 py-3 font-medium"
-										style={{ color: '#1c1c1c' }}
-									>
-										{criterionComp.criterion}
-									</td>
-									{criterionComp.proposals.map((proposal) => (
-										<td
-											key={proposal.proposalName}
-											className="border border-gray-300 px-4 py-3 text-center"
+									{comparison.proposalNames.map((name) => (
+										<th
+											key={name}
+											className="px-6 py-4 text-center font-bold text-slate-900 border-b border-slate-300"
 										>
-											<div className="space-y-2">
-												<div className="flex items-center justify-center">
-													<span className="text-lg mr-2">
+											{name}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{comparison.criteriaComparisons.map((criterionComp, index) => (
+									<tr
+										key={index}
+										className={`transition-colors hover:bg-slate-50 ${
+											index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+										}`}
+									>
+										<td className="px-6 py-4 font-medium text-slate-900 border-b border-slate-200">
+											{criterionComp.criterion}
+										</td>
+										{criterionComp.proposals.map((proposal) => (
+											<td
+												key={proposal.proposalName}
+												className="px-6 py-4 text-center border-b border-slate-200"
+											>
+												<div className="flex flex-col items-center space-y-2">
+													<span className="text-2xl">
 														{getPositionIcon(proposal.position)}
 													</span>
 													<span
-														className="px-2 py-1 rounded text-xs font-medium text-white"
+														className="px-3 py-1 rounded-full text-xs font-semibold text-white"
+														style={{
+															backgroundColor: getScoreColor(proposal.score),
+														}}
+													>
+														{getScoreText(proposal.score)}
+													</span>
+												</div>
+											</td>
+										))}
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			{/* Detailed Criteria Analysis mejorado */}
+			<div>
+				<h4 className="text-xl font-bold text-slate-900 mb-6">
+					Anàlisi Detallada per Criteris
+				</h4>
+				<div className="space-y-8">
+					{comparison.criteriaComparisons.map((criterionComp, index) => (
+						<div
+							key={index}
+							className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm"
+						>
+							<div className="bg-gradient-to-r from-slate-100 to-slate-200 px-6 py-4 border-b border-slate-300">
+								<h5 className="text-lg font-bold text-slate-900">
+									{index + 1}. {criterionComp.criterion}
+								</h5>
+							</div>
+
+							<div className="p-6">
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+									{criterionComp.proposals.map((proposal) => (
+										<div
+											key={proposal.proposalName}
+											className={`rounded-lg p-4 border-2 transition-all duration-300 hover:shadow-md ${
+												proposal.position === 1
+													? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
+													: 'border-slate-200 bg-slate-50 hover:border-slate-300'
+											}`}
+										>
+											<div className="flex items-center justify-between mb-4">
+												<h6 className="font-bold text-slate-900">
+													{proposal.proposalName}
+												</h6>
+												<div className="flex items-center space-x-2">
+													<span className="text-xl">
+														{getPositionIcon(proposal.position)}
+													</span>
+													<span
+														className="px-2 py-1 rounded-full text-xs font-semibold text-white"
 														style={{
 															backgroundColor: getScoreColor(proposal.score),
 														}}
@@ -410,102 +501,48 @@ export default function ComparisonComponent({
 													</span>
 												</div>
 											</div>
-										</td>
-									))}
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-			</div>
 
-			{/* Detailed Criteria Analysis */}
-			<div className="mb-8">
-				<h4 className="text-lg font-semibold mb-4" style={{ color: '#1c1c1c' }}>
-					Anàlisi Detallada per Criteris
-				</h4>
-				<div className="space-y-6">
-					{comparison.criteriaComparisons.map((criterionComp, index) => (
-						<div
-							key={index}
-							className="border rounded-lg p-6"
-							style={{ borderColor: '#dfe7e6' }}
-						>
-							<h5
-								className="text-md font-semibold mb-4"
-								style={{ color: '#1c1c1c' }}
-							>
-								{index + 1}. {criterionComp.criterion}
-							</h5>
-
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-								{criterionComp.proposals.map((proposal) => (
-									<div
-										key={proposal.proposalName}
-										className="border rounded-lg p-4"
-										style={{
-											borderColor: getScoreColor(proposal.score) + '40',
-											backgroundColor:
-												proposal.position === 1 ? '#f0fdf4' : '#ffffff',
-										}}
-									>
-										<div className="flex items-center justify-between mb-3">
-											<h6 className="font-medium" style={{ color: '#1c1c1c' }}>
-												{proposal.proposalName}
-											</h6>
-											<div className="flex items-center space-x-2">
-												<span className="text-lg">
-													{getPositionIcon(proposal.position)}
-												</span>
-												<span
-													className="px-2 py-1 rounded text-xs font-medium text-white"
-													style={{
-														backgroundColor: getScoreColor(proposal.score),
-													}}
-												>
-													{getScoreText(proposal.score)}
-												</span>
+											<div className="space-y-3">
+												{proposal.arguments.map((argument, i) => (
+													<div
+														key={i}
+														className="text-sm p-3 rounded-lg bg-white border border-slate-200"
+													>
+														<span className="text-slate-600">• {argument}</span>
+													</div>
+												))}
 											</div>
 										</div>
-
-										<div className="space-y-2">
-											{proposal.arguments.map((argument, i) => (
-												<div
-													key={i}
-													className="text-sm p-2 rounded"
-													style={{
-														backgroundColor: '#f8f9fa',
-														color: '#6f6f6f',
-													}}
-												>
-													• {argument}
-												</div>
-											))}
-										</div>
-									</div>
-								))}
+									))}
+								</div>
 							</div>
 						</div>
 					))}
 				</div>
 			</div>
 
-			{/* Download Button */}
-			<div className="flex justify-center">
-				<button
-					onClick={() => onDownloadPDF(comparison)}
-					className="px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors text-white cursor-pointer"
-					style={{ backgroundColor: '#199875' }}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.backgroundColor = '#188869';
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.backgroundColor = '#199875';
-					}}
-				>
-					<Download className="h-5 w-5" />
-					<span>Descarregar Comparació PDF</span>
-				</button>
+			{/* Download Button mejorado - con mejor espaciado */}
+			<div className="pt-8 pb-4">
+				<div className="flex justify-center">
+					<button
+						onClick={() => onDownloadPDF(comparison)}
+						className="px-8 py-4 rounded-xl font-semibold flex items-center space-x-3 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 shadow-lg"
+						style={{
+							background: 'linear-gradient(135deg, #199875 0%, #188869 100%)',
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background =
+								'linear-gradient(135deg, #188869 0%, #177759 100%)';
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background =
+								'linear-gradient(135deg, #199875 0%, #188869 100%)';
+						}}
+					>
+						<Download className="h-5 w-5" />
+						<span>Descarregar Comparació PDF</span>
+					</button>
+				</div>
 			</div>
 		</div>
 	);

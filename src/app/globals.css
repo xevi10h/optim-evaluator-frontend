@@ -85,6 +85,21 @@ summary {
   animation: glow 2s ease-in-out infinite alternate;
 }
 
+/* Nueva animación para las tarjetas de estadísticas */
+.animate-card-float {
+  animation: cardFloat 6s ease-in-out infinite;
+}
+
+.animate-card-float:nth-child(1) { animation-delay: 0s; }
+.animate-card-float:nth-child(2) { animation-delay: 1.5s; }
+.animate-card-float:nth-child(3) { animation-delay: 3s; }
+.animate-card-float:nth-child(4) { animation-delay: 4.5s; }
+
+/* Animación sutil para iconos */
+.animate-icon-pulse {
+  animation: iconPulse 3s ease-in-out infinite;
+}
+
 /* Transiciones suaves para cambios de layout */
 .transition-layout {
   transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
@@ -108,6 +123,16 @@ summary {
 .hover-lift:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Efecto hover para las tarjetas de estadísticas */
+.stat-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Animación de entrada para los elementos de lot */
@@ -203,6 +228,28 @@ summary {
   }
 }
 
+/* Nueva animación para las tarjetas flotantes */
+@keyframes cardFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Animación sutil para los iconos */
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
 /* Animaciones de rotación suave para iconos desplegables */
 .rotate-smooth {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -238,20 +285,13 @@ summary {
   }
 }
 
-/* Efectos para badges y indicadores */
-.badge-pulse {
-  animation: badgePulse 2s ease-in-out infinite;
+/* Efectos para badges y indicadores - SIN parpadeo */
+.badge-smooth {
+  transition: all 0.3s ease;
 }
 
-@keyframes badgePulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
+.badge-smooth:hover {
+  transform: scale(1.05);
 }
 
 /* Animaciones en secuencia para elementos de lista */
@@ -265,6 +305,23 @@ summary {
 .stagger-item:nth-child(4) { animation-delay: 0.4s; }
 .stagger-item:nth-child(5) { animation-delay: 0.5s; }
 
+/* Gradientes personalizados para las tarjetas */
+.gradient-blue {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+}
+
+.gradient-orange {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+}
+
 /* Mejorar la accesibilidad respetando preferencias de movimiento reducido */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-in-right,
@@ -274,8 +331,9 @@ summary {
   .animate-scale-in,
   .animate-shake,
   .animate-glow,
-  .comparison-enter,
-  .badge-pulse {
+  .animate-card-float,
+  .animate-icon-pulse,
+  .comparison-enter {
     animation: none;
     opacity: 1;
     transform: none;
@@ -288,7 +346,9 @@ summary {
 
   .rotate-smooth,
   .collapsible-header,
-  .hover-lift {
+  .hover-lift,
+  .stat-card-hover,
+  .badge-smooth {
     transition: none;
   }
 }

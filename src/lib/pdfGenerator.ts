@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import type { EvaluationResult, BasicInfo, ProposalComparison } from '@/types';
+import { PDFTableUtils } from './pdfTableUtils';
 
 export class PDFGeneratorService {
 	private doc: jsPDF;
@@ -200,6 +201,13 @@ export class PDFGeneratorService {
 		this.currentY += 8;
 	}
 
+	private cleanFileName(fileName: string): string {
+		return fileName
+			.replace(/[^\x20-\x7E]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
 	private addGeneralInfo(
 		basicInfo: BasicInfo,
 		evaluationResult: EvaluationResult,
@@ -234,11 +242,11 @@ export class PDFGeneratorService {
 			this.doc.setFont('helvetica', 'normal');
 			const valueHeight = this.addWrappedText(
 				value,
-				this.margin + 45,
+				this.margin + 50,
 				this.currentY,
-				this.contentWidth - 45,
+				this.contentWidth - 50,
 			);
-			this.currentY += Math.max(5, valueHeight);
+			this.currentY += Math.max(6, valueHeight + 1);
 		});
 
 		if (basicInfo.context) {
@@ -269,13 +277,17 @@ export class PDFGeneratorService {
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
 
+		const cleanProposalNames = comparison.proposalNames.map((name) =>
+			this.cleanFileName(name),
+		);
+
 		const infoItems = [
 			['Títol:', basicInfo.title],
 			['Expedient:', basicInfo.expedient],
 			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
 			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
 			['Lot comparat:', `${comparison.lotNumber} - ${comparison.lotTitle}`],
-			['Propostes comparades:', comparison.proposalNames.join(', ')],
+			['Propostes comparades:', cleanProposalNames.join(', ')],
 			[
 				'Confiança de la comparació:',
 				`${Math.round(comparison.confidence * 100)}%`,
@@ -288,11 +300,11 @@ export class PDFGeneratorService {
 			this.doc.setFont('helvetica', 'normal');
 			const valueHeight = this.addWrappedText(
 				value,
-				this.margin + 45,
+				this.margin + 50,
 				this.currentY,
-				this.contentWidth - 45,
+				this.contentWidth - 50,
 			);
-			this.currentY += Math.max(5, valueHeight);
+			this.currentY += Math.max(6, valueHeight + 1);
 		});
 
 		this.currentY += 20;
@@ -319,29 +331,30 @@ export class PDFGeneratorService {
 		this.addSectionTitle('RÀNKING GLOBAL');
 
 		comparison.globalRanking.forEach((ranking) => {
-			this.checkPageBreak(60);
+			this.checkPageBreak(80);
 
-			// Position and name
+			const cleanProposalName = this.cleanFileName(ranking.proposalName);
+
 			this.doc.setFontSize(12);
 			this.doc.setTextColor(25, 152, 117);
 			this.doc.setFont('helvetica', 'bold');
 
 			const positionIcon =
 				ranking.position === 1
-					? '🥇'
+					? '1r'
 					: ranking.position === 2
-					? '🥈'
+					? '2n'
 					: ranking.position === 3
-					? '🥉'
-					: `${ranking.position}°`;
+					? '3r'
+					: `${ranking.position}è`;
+
 			this.doc.text(
-				`${positionIcon} ${ranking.proposalName}`,
+				`${positionIcon} - ${cleanProposalName}`,
 				this.margin,
 				this.currentY,
 			);
 			this.currentY += 8;
 
-			// Overall score
 			this.doc.setFontSize(10);
 			this.doc.setTextColor(60, 60, 60);
 			this.doc.setFont('helvetica', 'bold');
@@ -352,7 +365,6 @@ export class PDFGeneratorService {
 			);
 			this.currentY += 8;
 
-			// Strengths
 			if (ranking.strengths.length > 0) {
 				this.doc.setFont('helvetica', 'bold');
 				this.doc.setTextColor(25, 152, 117);
@@ -373,7 +385,6 @@ export class PDFGeneratorService {
 				this.currentY += 3;
 			}
 
-			// Weaknesses
 			if (ranking.weaknesses.length > 0) {
 				this.doc.setFont('helvetica', 'bold');
 				this.doc.setTextColor(220, 38, 38);
@@ -394,7 +405,6 @@ export class PDFGeneratorService {
 				this.currentY += 3;
 			}
 
-			// Recommendation
 			this.doc.setFontSize(10);
 			this.doc.setTextColor(3, 105, 161);
 			this.doc.setFont('helvetica', 'bold');
@@ -410,7 +420,6 @@ export class PDFGeneratorService {
 			);
 			this.currentY += recHeight + 10;
 
-			// Separator
 			this.doc.setDrawColor(200, 200, 200);
 			this.doc.setLineWidth(0.5);
 			this.doc.line(
@@ -427,110 +436,19 @@ export class PDFGeneratorService {
 		this.checkPageBreak(80);
 		this.addSectionTitle('TAULA COMPARATIVA PER CRITERIS');
 
-		const tableStartY = this.currentY;
-		const colWidth = this.contentWidth / (comparison.proposalNames.length + 1);
-		const rowHeight = 15;
-
-		// Headers
-		this.doc.setFillColor(223, 231, 230);
-		this.doc.rect(
+		const tableUtils = new PDFTableUtils(
+			this.doc,
 			this.margin,
+			this.contentWidth,
+		);
+
+		const endY = tableUtils.createComparisonTable(
+			comparison.criteriaComparisons,
+			comparison.proposalNames,
 			this.currentY,
-			this.contentWidth,
-			rowHeight,
-			'F',
 		);
 
-		this.doc.setFontSize(9);
-		this.doc.setTextColor(28, 28, 28);
-		this.doc.setFont('helvetica', 'bold');
-
-		// Criterion header
-		this.doc.text('Criteri', this.margin + 2, this.currentY + 10);
-
-		// Proposal headers
-		comparison.proposalNames.forEach((name, index) => {
-			const x = this.margin + colWidth + index * colWidth;
-			const maxTextWidth = colWidth - 4;
-			const lines = this.doc.splitTextToSize(name, maxTextWidth);
-			this.doc.text(lines[0], x + 2, this.currentY + 10);
-		});
-
-		this.currentY += rowHeight;
-
-		// Rows
-		comparison.criteriaComparisons.forEach((criterionComp, rowIndex) => {
-			this.checkPageBreak(rowHeight + 5);
-
-			// Alternate row colors
-			if (rowIndex % 2 === 0) {
-				this.doc.setFillColor(248, 249, 250);
-				this.doc.rect(
-					this.margin,
-					this.currentY,
-					this.contentWidth,
-					rowHeight,
-					'F',
-				);
-			}
-
-			this.doc.setFontSize(8);
-			this.doc.setTextColor(28, 28, 28);
-			this.doc.setFont('helvetica', 'normal');
-
-			// Criterion name
-			const criterionLines = this.doc.splitTextToSize(
-				criterionComp.criterion,
-				colWidth - 4,
-			);
-			this.doc.text(criterionLines[0], this.margin + 2, this.currentY + 10);
-
-			// Proposal scores and positions
-			criterionComp.proposals.forEach((proposal, index) => {
-				const x = this.margin + colWidth + index * colWidth;
-
-				const positionIcon =
-					proposal.position === 1
-						? '🥇'
-						: proposal.position === 2
-						? '🥈'
-						: proposal.position === 3
-						? '🥉'
-						: `${proposal.position}°`;
-				const scoreText =
-					proposal.score === 'COMPLEIX_EXITOSAMENT'
-						? 'Compleix'
-						: proposal.score === 'REGULAR'
-						? 'Regular'
-						: 'Insuficient';
-
-				this.doc.text(
-					`${positionIcon} ${scoreText}`,
-					x + 2,
-					this.currentY + 10,
-				);
-			});
-
-			this.currentY += rowHeight;
-		});
-
-		// Table border
-		this.doc.setDrawColor(200, 200, 200);
-		this.doc.setLineWidth(0.5);
-		this.doc.rect(
-			this.margin,
-			tableStartY,
-			this.contentWidth,
-			this.currentY - tableStartY,
-		);
-
-		// Vertical lines
-		for (let i = 1; i <= comparison.proposalNames.length; i++) {
-			const x = this.margin + i * colWidth;
-			this.doc.line(x, tableStartY, x, this.currentY);
-		}
-
-		this.currentY += 15;
+		this.currentY = endY + 15;
 	}
 
 	private addDetailedCriteriaAnalysis(comparison: ProposalComparison): void {
@@ -554,19 +472,21 @@ export class PDFGeneratorService {
 			criterionComp.proposals.forEach((proposal) => {
 				this.checkPageBreak(40);
 
-				// Proposal name and score
+				const cleanProposalName = this.cleanFileName(proposal.proposalName);
+
 				this.doc.setFontSize(10);
 				this.doc.setTextColor(25, 152, 117);
 				this.doc.setFont('helvetica', 'bold');
 
 				const positionIcon =
 					proposal.position === 1
-						? '🥇'
+						? '1r'
 						: proposal.position === 2
-						? '🥈'
+						? '2n'
 						: proposal.position === 3
-						? '🥉'
-						: `${proposal.position}°`;
+						? '3r'
+						: `${proposal.position}è`;
+
 				const scoreText =
 					proposal.score === 'COMPLEIX_EXITOSAMENT'
 						? 'Compleix exitosament'
@@ -575,13 +495,12 @@ export class PDFGeneratorService {
 						: 'Insuficient';
 
 				this.doc.text(
-					`${positionIcon} ${proposal.proposalName} - ${scoreText}`,
+					`${positionIcon} ${cleanProposalName} - ${scoreText}`,
 					this.margin,
 					this.currentY,
 				);
 				this.currentY += 8;
 
-				// Arguments
 				this.doc.setFontSize(9);
 				this.doc.setTextColor(60, 60, 60);
 				this.doc.setFont('helvetica', 'normal');
@@ -599,7 +518,6 @@ export class PDFGeneratorService {
 				this.currentY += 5;
 			});
 
-			// Separator
 			this.doc.setDrawColor(200, 200, 200);
 			this.doc.setLineWidth(0.5);
 			this.doc.line(
@@ -631,7 +549,6 @@ export class PDFGeneratorService {
 	private addLotsEvaluation(evaluationResult: EvaluationResult): void {
 		const hasMultipleLots = evaluationResult.extractedLots.length > 1;
 
-		// Group evaluations by lot
 		const evaluationsByLot = new Map<number, any[]>();
 		evaluationResult.lots.forEach((evaluation) => {
 			if (!evaluationsByLot.has(evaluation.lotNumber)) {

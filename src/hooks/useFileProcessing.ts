@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiService } from '@/lib/apiService';
+import { normalizeFileName } from '@/lib/fileUtils';
 import type { FileWithContent, ProcessingState } from '@/types';
 
 interface ProcessedFile {
@@ -20,59 +21,6 @@ interface UploadResponse {
 		failed: number;
 	};
 }
-
-const normalizeFileName = (fileName: string): string => {
-	try {
-		let normalized = fileName;
-
-		const charReplacements: { [key: string]: string } = {
-			'Ã¨': 'è',
-			'Ã©': 'é',
-			'Ã¡': 'á',
-			'Ã­': 'í',
-			'Ã³': 'ó',
-			Ãº: 'ú',
-			'Ã¼': 'ü',
-			'Ã±': 'ñ',
-			'Ã§': 'ç',
-			'Ã ': 'à',
-			'Ã²': 'ò',
-			TeÌcnic: 'Tècnic',
-			teÌcnic: 'tècnic',
-			TeÌ: 'Tè',
-			teÌ: 'tè',
-			'Tè€cnic': 'Tècnic',
-			'tè€cnic': 'tècnic',
-			'è€': 'è',
-			'é€': 'é',
-			'à€': 'à',
-			'ò€': 'ò',
-			'ú€': 'ú',
-			'í€': 'í',
-			'ó€': 'ó',
-			'ñ€': 'ñ',
-			'ç€': 'ç',
-			'ü€': 'ü',
-		};
-
-		for (const [bad, good] of Object.entries(charReplacements)) {
-			normalized = normalized.replace(new RegExp(bad, 'g'), good);
-		}
-
-		try {
-			normalized = decodeURIComponent(escape(normalized));
-		} catch (e) {
-			console.warn('Failed to decode URI component, using replacement method');
-		}
-
-		normalized = normalized.normalize('NFC');
-
-		return normalized;
-	} catch (error) {
-		console.warn('Error normalizing filename:', error);
-		return fileName;
-	}
-};
 
 export function useFileProcessing() {
 	const [state, setState] = useState<ProcessingState>({

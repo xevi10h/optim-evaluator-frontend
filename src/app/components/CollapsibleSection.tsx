@@ -12,6 +12,7 @@ interface CollapsibleSectionProps {
 	headerBgColor?: string;
 	badgeText?: string;
 	badgeColor?: string;
+	customBadge?: React.ReactNode;
 	children: React.ReactNode;
 	className?: string;
 }
@@ -25,6 +26,7 @@ export default function CollapsibleSection({
 	headerBgColor = '#f8f9fa',
 	badgeText,
 	badgeColor = '#199875',
+	customBadge,
 	children,
 	className = '',
 }: CollapsibleSectionProps) {
@@ -52,9 +54,10 @@ export default function CollapsibleSection({
 							style={{ color: headerColor }}
 						>
 							<span>{title}</span>
-							{badgeText && (
+							{customBadge && customBadge}
+							{!customBadge && badgeText && (
 								<span
-									className="px-3 py-1 rounded-full text-sm font-medium text-white animate-pulse"
+									className="px-3 py-1 rounded-full text-sm font-medium text-white"
 									style={{ backgroundColor: badgeColor }}
 								>
 									{badgeText}
@@ -74,14 +77,7 @@ export default function CollapsibleSection({
 							isOpen ? 'rotate-90' : 'rotate-0'
 						}`}
 					>
-						{isOpen ? (
-							<ChevronDown className="h-5 w-5" style={{ color: headerColor }} />
-						) : (
-							<ChevronRight
-								className="h-5 w-5"
-								style={{ color: headerColor }}
-							/>
-						)}
+						<ChevronRight className="h-5 w-5" style={{ color: headerColor }} />
 					</div>
 				</div>
 			</button>
