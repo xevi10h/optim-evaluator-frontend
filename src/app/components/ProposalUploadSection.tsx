@@ -150,12 +150,12 @@ export default function ProposalUploadSection({
 							className="text-sm font-medium whitespace-nowrap hidden sm:block"
 							style={{ color: '#1c1c1c' }}
 						>
-							Lot:
+							Selecciona el lot:
 						</label>
 						<select
 							value={selectedLot}
 							onChange={(e) => setSelectedLot(Number(e.target.value))}
-							className="px-2 py-1 border rounded focus:ring-2 focus:ring-opacity-50 focus:border-transparent text-sm w-48 cursor-pointer"
+							className="px-2 py-1 border rounded focus:ring-2 focus:ring-opacity-50 focus:border-transparent text-sm w-100 cursor-pointer"
 							style={{ borderColor: '#dfe7e6', color: '#1c1c1c' }}
 							title={`Lot ${selectedLot}: ${
 								extractedLots.find((l) => l.lotNumber === selectedLot)?.title ||
@@ -164,10 +164,7 @@ export default function ProposalUploadSection({
 						>
 							{extractedLots.map((lot) => (
 								<option key={lot.lotNumber} value={lot.lotNumber}>
-									Lot {lot.lotNumber}:{' '}
-									{lot.title.length > 25
-										? lot.title.substring(0, 25) + '...'
-										: lot.title}
+									Lot {lot.lotNumber}: {lot.title}
 								</option>
 							))}
 						</select>

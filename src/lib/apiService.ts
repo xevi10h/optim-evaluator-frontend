@@ -1,3 +1,4 @@
+// src/lib/apiService.ts - Actualitzat amb comparació
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -36,6 +37,7 @@ export interface UploadResponse {
 export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
+	proposalName: string;
 	hasProposal: boolean;
 	criteria: Array<{
 		criterion: string;
@@ -56,6 +58,36 @@ export interface EvaluationResult {
 	overallSummary: string;
 	overallRecommendation: string;
 	overallConfidence: number;
+}
+
+export interface ProposalComparison {
+	lotNumber: number;
+	lotTitle: string;
+	proposalNames: string[];
+	criteriaComparisons: Array<{
+		criterion: string;
+		proposals: Array<{
+			proposalName: string;
+			score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
+			arguments: string[];
+			position: number;
+		}>;
+	}>;
+	globalRanking: Array<{
+		proposalName: string;
+		position: number;
+		overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
+		strengths: string[];
+		weaknesses: string[];
+		recommendation: string;
+	}>;
+	summary: string;
+	confidence: number;
+}
+
+export interface ComparisonResult {
+	comparison: ProposalComparison;
+	timestamp: string;
 }
 
 class ApiService {
@@ -139,6 +171,41 @@ class ApiService {
 		});
 	}
 
+	async compareProposals(
+		specifications: FileContent[],
+		lotInfo: LotInfo,
+		evaluatedProposals: LotEvaluation[],
+	): Promise<ComparisonResult> {
+		console.log('API Service - compareProposals called with:', {
+			specificationsCount: specifications.length,
+			lotInfo,
+			evaluatedProposalsCount: evaluatedProposals.length,
+			evaluatedProposals: evaluatedProposals.map((p) => ({
+				name: p.proposalName,
+				lotNumber: p.lotNumber,
+				hasProposal: p.hasProposal,
+				criteriaCount: p.criteria.length,
+			})),
+		});
+
+		const requestBody = {
+			specifications,
+			lotInfo,
+			evaluatedProposals,
+		};
+
+		console.log('Request body structure:', {
+			hasSpecifications: Array.isArray(requestBody.specifications),
+			hasLotInfo: !!requestBody.lotInfo,
+			hasEvaluatedProposals: Array.isArray(requestBody.evaluatedProposals),
+		});
+
+		return this.makeRequest<ComparisonResult>('/compare-proposals', {
+			method: 'POST',
+			body: JSON.stringify(requestBody),
+		});
+	}
+
 	async healthCheck(): Promise<{
 		status: string;
 		timestamp: string;
@@ -151,7 +218,6 @@ class ApiService {
 
 export const apiService = new ApiService();
 
-// Custom hook to manage API requests and loading/error states
 import { useState } from 'react';
 
 export function useApiService() {
@@ -192,6 +258,15 @@ export function useApiService() {
 			apiService.evaluateProposalWithLots(specifications, proposals, lots),
 		);
 
+	const compareProposals = (
+		specifications: FileContent[],
+		lotInfo: LotInfo,
+		evaluatedProposals: LotEvaluation[],
+	) =>
+		executeRequest(() =>
+			apiService.compareProposals(specifications, lotInfo, evaluatedProposals),
+		);
+
 	const healthCheck = () => executeRequest(() => apiService.healthCheck());
 
 	return {
@@ -200,6 +275,7 @@ export function useApiService() {
 		uploadFiles,
 		extractLots,
 		evaluateProposalWithLots,
+		compareProposals,
 		healthCheck,
 		clearError: () => setError(null),
 	};

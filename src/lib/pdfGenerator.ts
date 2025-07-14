@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { EvaluationResult, BasicInfo } from '@/types';
+import type { EvaluationResult, BasicInfo, ProposalComparison } from '@/types';
 
 export class PDFGeneratorService {
 	private doc: jsPDF;
@@ -25,7 +25,6 @@ export class PDFGeneratorService {
 
 		this.addGeneralInfo(basicInfo, evaluationResult);
 
-		// Only add overall summary if it exists and has content
 		if (
 			evaluationResult.overallSummary &&
 			evaluationResult.overallSummary.trim()
@@ -35,7 +34,6 @@ export class PDFGeneratorService {
 
 		this.addLotsEvaluation(evaluationResult);
 
-		// Only add overall recommendation if it exists and has content
 		if (
 			evaluationResult.overallRecommendation &&
 			evaluationResult.overallRecommendation.trim()
@@ -43,7 +41,6 @@ export class PDFGeneratorService {
 			this.addOverallRecommendation(evaluationResult);
 		}
 
-		// Add footer only at the very end
 		this.addFooter();
 
 		const fileName = `avaluacio_${basicInfo.expedient}_${
@@ -52,9 +49,29 @@ export class PDFGeneratorService {
 		this.doc.save(fileName);
 	}
 
+	generateComparisonReport(
+		comparison: ProposalComparison,
+		basicInfo: BasicInfo,
+	): void {
+		this.addFirstPageTitle('INFORME COMPARATIU');
+		this.currentY = 90;
+
+		this.addComparisonGeneralInfo(basicInfo, comparison);
+		this.addComparisonSummary(comparison);
+		this.addGlobalRanking(comparison);
+		this.addCriteriaComparisonTable(comparison);
+		this.addDetailedCriteriaAnalysis(comparison);
+
+		this.addFooter();
+
+		const fileName = `comparacio_lot_${comparison.lotNumber}_${
+			new Date().toISOString().split('T')[0]
+		}.pdf`;
+		this.doc.save(fileName);
+	}
+
 	private checkPageBreak(requiredSpace: number): void {
 		if (this.currentY + requiredSpace > this.pageHeight - 50) {
-			// Increased margin for footer
 			this.addFooter();
 			this.doc.addPage();
 			this.addSmallHeader();
@@ -62,14 +79,20 @@ export class PDFGeneratorService {
 		}
 	}
 
-	private addFirstPageTitle(): void {
+	private addFirstPageTitle(customTitle?: string): void {
 		this.doc.setFontSize(24);
 		this.doc.setTextColor(25, 152, 117);
 		this.doc.setFont('helvetica', 'bold');
-		this.doc.text("INFORME D'AVALUACIÓ", this.pageWidth / 2, 40, {
+
+		const title = customTitle || "INFORME D'AVALUACIÓ";
+		const subtitle = customTitle
+			? 'DE PROPOSTES DE LICITACIÓ'
+			: 'DE PROPOSTA DE LICITACIÓ';
+
+		this.doc.text(title, this.pageWidth / 2, 40, {
 			align: 'center',
 		});
-		this.doc.text('DE PROPOSTA DE LICITACIÓ', this.pageWidth / 2, 55, {
+		this.doc.text(subtitle, this.pageWidth / 2, 55, {
 			align: 'center',
 		});
 
@@ -201,7 +224,7 @@ export class PDFGeneratorService {
 				"Confiança de l'avaluació:",
 				`${Math.round(evaluationResult.overallConfidence * 100)}%`,
 			],
-			['Lots avaluats:', evaluationResult.lots.length.toString()],
+			['Lots avaluats:', evaluationResult.extractedLots.length.toString()],
 			['Total criteris avaluats:', totalCriteria.toString()],
 		];
 
@@ -236,6 +259,359 @@ export class PDFGeneratorService {
 		this.currentY += 20;
 	}
 
+	private addComparisonGeneralInfo(
+		basicInfo: BasicInfo,
+		comparison: ProposalComparison,
+	): void {
+		this.addSectionTitle('INFORMACIÓ GENERAL');
+
+		this.doc.setFontSize(10);
+		this.doc.setTextColor(60, 60, 60);
+		this.doc.setFont('helvetica', 'normal');
+
+		const infoItems = [
+			['Títol:', basicInfo.title],
+			['Expedient:', basicInfo.expedient],
+			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
+			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
+			['Lot comparat:', `${comparison.lotNumber} - ${comparison.lotTitle}`],
+			['Propostes comparades:', comparison.proposalNames.join(', ')],
+			[
+				'Confiança de la comparació:',
+				`${Math.round(comparison.confidence * 100)}%`,
+			],
+		];
+
+		infoItems.forEach(([label, value]) => {
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text(label, this.margin, this.currentY);
+			this.doc.setFont('helvetica', 'normal');
+			const valueHeight = this.addWrappedText(
+				value,
+				this.margin + 45,
+				this.currentY,
+				this.contentWidth - 45,
+			);
+			this.currentY += Math.max(5, valueHeight);
+		});
+
+		this.currentY += 20;
+	}
+
+	private addComparisonSummary(comparison: ProposalComparison): void {
+		this.checkPageBreak(40);
+		this.addSectionTitle('RESUM EXECUTIU DE LA COMPARACIÓ');
+
+		this.doc.setFontSize(10);
+		this.doc.setTextColor(60, 60, 60);
+		this.doc.setFont('helvetica', 'normal');
+		const summaryHeight = this.addWrappedText(
+			comparison.summary,
+			this.margin,
+			this.currentY,
+			this.contentWidth,
+		);
+		this.currentY += summaryHeight + 15;
+	}
+
+	private addGlobalRanking(comparison: ProposalComparison): void {
+		this.checkPageBreak(50);
+		this.addSectionTitle('RÀNKING GLOBAL');
+
+		comparison.globalRanking.forEach((ranking) => {
+			this.checkPageBreak(60);
+
+			// Position and name
+			this.doc.setFontSize(12);
+			this.doc.setTextColor(25, 152, 117);
+			this.doc.setFont('helvetica', 'bold');
+
+			const positionIcon =
+				ranking.position === 1
+					? '🥇'
+					: ranking.position === 2
+					? '🥈'
+					: ranking.position === 3
+					? '🥉'
+					: `${ranking.position}°`;
+			this.doc.text(
+				`${positionIcon} ${ranking.proposalName}`,
+				this.margin,
+				this.currentY,
+			);
+			this.currentY += 8;
+
+			// Overall score
+			this.doc.setFontSize(10);
+			this.doc.setTextColor(60, 60, 60);
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text(
+				`Puntuació Global: ${ranking.overallScore}`,
+				this.margin,
+				this.currentY,
+			);
+			this.currentY += 8;
+
+			// Strengths
+			if (ranking.strengths.length > 0) {
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.setTextColor(25, 152, 117);
+				this.doc.text('Punts Forts:', this.margin, this.currentY);
+				this.currentY += 5;
+
+				this.doc.setFont('helvetica', 'normal');
+				this.doc.setTextColor(24, 136, 105);
+				ranking.strengths.forEach((strength) => {
+					const strengthHeight = this.addWrappedText(
+						`• ${strength}`,
+						this.margin + 5,
+						this.currentY,
+						this.contentWidth - 5,
+					);
+					this.currentY += Math.max(5, strengthHeight);
+				});
+				this.currentY += 3;
+			}
+
+			// Weaknesses
+			if (ranking.weaknesses.length > 0) {
+				this.doc.setFont('helvetica', 'bold');
+				this.doc.setTextColor(220, 38, 38);
+				this.doc.text('Punts Febles:', this.margin, this.currentY);
+				this.currentY += 5;
+
+				this.doc.setFont('helvetica', 'normal');
+				this.doc.setTextColor(185, 28, 28);
+				ranking.weaknesses.forEach((weakness) => {
+					const weaknessHeight = this.addWrappedText(
+						`• ${weakness}`,
+						this.margin + 5,
+						this.currentY,
+						this.contentWidth - 5,
+					);
+					this.currentY += Math.max(5, weaknessHeight);
+				});
+				this.currentY += 3;
+			}
+
+			// Recommendation
+			this.doc.setFontSize(10);
+			this.doc.setTextColor(3, 105, 161);
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text('Recomanació:', this.margin, this.currentY);
+			this.currentY += 5;
+
+			this.doc.setFont('helvetica', 'normal');
+			const recHeight = this.addWrappedText(
+				ranking.recommendation,
+				this.margin,
+				this.currentY,
+				this.contentWidth,
+			);
+			this.currentY += recHeight + 10;
+
+			// Separator
+			this.doc.setDrawColor(200, 200, 200);
+			this.doc.setLineWidth(0.5);
+			this.doc.line(
+				this.margin,
+				this.currentY + 5,
+				this.pageWidth - this.margin,
+				this.currentY + 5,
+			);
+			this.currentY += 15;
+		});
+	}
+
+	private addCriteriaComparisonTable(comparison: ProposalComparison): void {
+		this.checkPageBreak(80);
+		this.addSectionTitle('TAULA COMPARATIVA PER CRITERIS');
+
+		const tableStartY = this.currentY;
+		const colWidth = this.contentWidth / (comparison.proposalNames.length + 1);
+		const rowHeight = 15;
+
+		// Headers
+		this.doc.setFillColor(223, 231, 230);
+		this.doc.rect(
+			this.margin,
+			this.currentY,
+			this.contentWidth,
+			rowHeight,
+			'F',
+		);
+
+		this.doc.setFontSize(9);
+		this.doc.setTextColor(28, 28, 28);
+		this.doc.setFont('helvetica', 'bold');
+
+		// Criterion header
+		this.doc.text('Criteri', this.margin + 2, this.currentY + 10);
+
+		// Proposal headers
+		comparison.proposalNames.forEach((name, index) => {
+			const x = this.margin + colWidth + index * colWidth;
+			const maxTextWidth = colWidth - 4;
+			const lines = this.doc.splitTextToSize(name, maxTextWidth);
+			this.doc.text(lines[0], x + 2, this.currentY + 10);
+		});
+
+		this.currentY += rowHeight;
+
+		// Rows
+		comparison.criteriaComparisons.forEach((criterionComp, rowIndex) => {
+			this.checkPageBreak(rowHeight + 5);
+
+			// Alternate row colors
+			if (rowIndex % 2 === 0) {
+				this.doc.setFillColor(248, 249, 250);
+				this.doc.rect(
+					this.margin,
+					this.currentY,
+					this.contentWidth,
+					rowHeight,
+					'F',
+				);
+			}
+
+			this.doc.setFontSize(8);
+			this.doc.setTextColor(28, 28, 28);
+			this.doc.setFont('helvetica', 'normal');
+
+			// Criterion name
+			const criterionLines = this.doc.splitTextToSize(
+				criterionComp.criterion,
+				colWidth - 4,
+			);
+			this.doc.text(criterionLines[0], this.margin + 2, this.currentY + 10);
+
+			// Proposal scores and positions
+			criterionComp.proposals.forEach((proposal, index) => {
+				const x = this.margin + colWidth + index * colWidth;
+
+				const positionIcon =
+					proposal.position === 1
+						? '🥇'
+						: proposal.position === 2
+						? '🥈'
+						: proposal.position === 3
+						? '🥉'
+						: `${proposal.position}°`;
+				const scoreText =
+					proposal.score === 'COMPLEIX_EXITOSAMENT'
+						? 'Compleix'
+						: proposal.score === 'REGULAR'
+						? 'Regular'
+						: 'Insuficient';
+
+				this.doc.text(
+					`${positionIcon} ${scoreText}`,
+					x + 2,
+					this.currentY + 10,
+				);
+			});
+
+			this.currentY += rowHeight;
+		});
+
+		// Table border
+		this.doc.setDrawColor(200, 200, 200);
+		this.doc.setLineWidth(0.5);
+		this.doc.rect(
+			this.margin,
+			tableStartY,
+			this.contentWidth,
+			this.currentY - tableStartY,
+		);
+
+		// Vertical lines
+		for (let i = 1; i <= comparison.proposalNames.length; i++) {
+			const x = this.margin + i * colWidth;
+			this.doc.line(x, tableStartY, x, this.currentY);
+		}
+
+		this.currentY += 15;
+	}
+
+	private addDetailedCriteriaAnalysis(comparison: ProposalComparison): void {
+		this.checkPageBreak(50);
+		this.addSectionTitle('ANÀLISI DETALLADA PER CRITERIS');
+
+		comparison.criteriaComparisons.forEach((criterionComp, index) => {
+			this.checkPageBreak(80);
+
+			this.doc.setFontSize(12);
+			this.doc.setTextColor(0, 0, 0);
+			this.doc.setFont('helvetica', 'bold');
+			const titleHeight = this.addWrappedText(
+				`${index + 1}. ${criterionComp.criterion}`,
+				this.margin,
+				this.currentY,
+				this.contentWidth,
+			);
+			this.currentY += titleHeight + 8;
+
+			criterionComp.proposals.forEach((proposal) => {
+				this.checkPageBreak(40);
+
+				// Proposal name and score
+				this.doc.setFontSize(10);
+				this.doc.setTextColor(25, 152, 117);
+				this.doc.setFont('helvetica', 'bold');
+
+				const positionIcon =
+					proposal.position === 1
+						? '🥇'
+						: proposal.position === 2
+						? '🥈'
+						: proposal.position === 3
+						? '🥉'
+						: `${proposal.position}°`;
+				const scoreText =
+					proposal.score === 'COMPLEIX_EXITOSAMENT'
+						? 'Compleix exitosament'
+						: proposal.score === 'REGULAR'
+						? 'Regular'
+						: 'Insuficient';
+
+				this.doc.text(
+					`${positionIcon} ${proposal.proposalName} - ${scoreText}`,
+					this.margin,
+					this.currentY,
+				);
+				this.currentY += 8;
+
+				// Arguments
+				this.doc.setFontSize(9);
+				this.doc.setTextColor(60, 60, 60);
+				this.doc.setFont('helvetica', 'normal');
+
+				proposal.arguments.forEach((argument) => {
+					const argHeight = this.addWrappedText(
+						`• ${argument}`,
+						this.margin + 5,
+						this.currentY,
+						this.contentWidth - 5,
+					);
+					this.currentY += Math.max(5, argHeight);
+				});
+
+				this.currentY += 5;
+			});
+
+			// Separator
+			this.doc.setDrawColor(200, 200, 200);
+			this.doc.setLineWidth(0.5);
+			this.doc.line(
+				this.margin,
+				this.currentY + 5,
+				this.pageWidth - this.margin,
+				this.currentY + 5,
+			);
+			this.currentY += 15;
+		});
+	}
+
 	private addOverallSummary(evaluationResult: EvaluationResult): void {
 		this.checkPageBreak(40);
 		this.addSectionTitle('RESUM GENERAL');
@@ -253,20 +629,29 @@ export class PDFGeneratorService {
 	}
 
 	private addLotsEvaluation(evaluationResult: EvaluationResult): void {
-		const hasMultipleLots = evaluationResult.lots.length > 1;
+		const hasMultipleLots = evaluationResult.extractedLots.length > 1;
 
-		evaluationResult.lots.forEach((lot, index) => {
+		// Group evaluations by lot
+		const evaluationsByLot = new Map<number, any[]>();
+		evaluationResult.lots.forEach((evaluation) => {
+			if (!evaluationsByLot.has(evaluation.lotNumber)) {
+				evaluationsByLot.set(evaluation.lotNumber, []);
+			}
+			evaluationsByLot.get(evaluation.lotNumber)!.push(evaluation);
+		});
+
+		evaluationResult.extractedLots.forEach((lotInfo) => {
+			const lotEvaluations = evaluationsByLot.get(lotInfo.lotNumber) || [];
+
 			this.checkPageBreak(50);
 
-			// Lot header
 			if (hasMultipleLots) {
-				this.addSectionTitle(`LOT ${lot.lotNumber}: ${lot.lotTitle}`);
+				this.addSectionTitle(`LOT ${lotInfo.lotNumber}: ${lotInfo.title}`);
 			} else {
 				this.addSectionTitle('AVALUACIÓ DETALLADA PER CRITERIS');
 			}
 
-			if (!lot.hasProposal) {
-				// No proposal for this lot
+			if (lotEvaluations.length === 0) {
 				this.doc.setFillColor(255, 243, 205);
 				this.doc.rect(
 					this.margin,
@@ -288,126 +673,141 @@ export class PDFGeneratorService {
 				return;
 			}
 
-			// Lot summary - Simplified without background box
-			if (hasMultipleLots) {
-				this.checkPageBreak(20);
-
-				// Add title first with proper spacing
-				this.doc.setFontSize(10);
-				this.doc.setTextColor(60, 60, 60);
-				this.doc.setFont('helvetica', 'bold');
-				this.doc.text('Resum del Lot:', this.margin, this.currentY);
-				this.currentY += 8; // Spacing after title
-
-				// Add the content directly without background box
-				this.doc.setFontSize(10);
-				this.doc.setTextColor(60, 60, 60);
-				this.doc.setFont('helvetica', 'normal');
-				const contentHeight = this.addWrappedText(
-					lot.summary,
-					this.margin,
-					this.currentY,
-					this.contentWidth,
-				);
-				this.currentY += contentHeight + 10; // Small margin after content
-			}
-
-			// Extracted criteria for this lot
-			if (lot.criteria.length > 0) {
-				this.checkPageBreak(30);
-
-				if (hasMultipleLots) {
-					this.addSubSectionTitle('Criteris Identificats');
-				} else {
-					this.addSubSectionTitle('CRITERIS IDENTIFICATS');
+			lotEvaluations.forEach((evaluation, evalIndex) => {
+				if (lotEvaluations.length > 1) {
+					this.checkPageBreak(20);
+					this.addSubSectionTitle(`Proposta: ${evaluation.proposalName}`);
 				}
 
-				lot.criteria.forEach((criterion) => {
-					this.checkPageBreak(8);
+				if (hasMultipleLots || lotEvaluations.length > 1) {
+					this.checkPageBreak(20);
 
-					// Ensure consistent formatting for criteria items
-					this.doc.setFontSize(9);
+					this.doc.setFontSize(10);
+					this.doc.setTextColor(60, 60, 60);
+					this.doc.setFont('helvetica', 'bold');
+					this.doc.text(
+						lotEvaluations.length > 1
+							? `Resum - ${evaluation.proposalName}:`
+							: 'Resum del Lot:',
+						this.margin,
+						this.currentY,
+					);
+					this.currentY += 8;
+
+					this.doc.setFontSize(10);
 					this.doc.setTextColor(60, 60, 60);
 					this.doc.setFont('helvetica', 'normal');
-
-					// Use wrapped text to handle long criteria properly
-					const criteriaHeight = this.addWrappedText(
-						`• ${criterion.criterion}`,
-						this.margin + 5,
+					const contentHeight = this.addWrappedText(
+						evaluation.summary,
+						this.margin,
 						this.currentY,
-						this.contentWidth - 10, // Leave margin for bullet point
-						5,
+						this.contentWidth,
 					);
-					this.currentY += Math.max(5, criteriaHeight);
-				});
+					this.currentY += contentHeight + 10;
+				}
 
-				this.currentY += 10;
-			}
+				if (evaluation.criteria.length > 0) {
+					this.checkPageBreak(30);
 
-			// Criteria evaluation
-			if (hasMultipleLots) {
-				this.addSubSectionTitle('Avaluació per Criteris');
-			}
+					if (hasMultipleLots || lotEvaluations.length > 1) {
+						this.addSubSectionTitle(
+							lotEvaluations.length > 1
+								? `Criteris - ${evaluation.proposalName}`
+								: 'Criteris Identificats',
+						);
+					} else {
+						this.addSubSectionTitle('CRITERIS IDENTIFICATS');
+					}
 
-			lot.criteria.forEach((criterion, criterionIndex) => {
-				this.checkPageBreak(80);
-				this.addCriterionEvaluation(criterion, criterionIndex + 1);
+					evaluation.criteria.forEach((criterion: any) => {
+						this.checkPageBreak(8);
+
+						this.doc.setFontSize(9);
+						this.doc.setTextColor(60, 60, 60);
+						this.doc.setFont('helvetica', 'normal');
+
+						const criteriaHeight = this.addWrappedText(
+							`• ${criterion.criterion}`,
+							this.margin + 5,
+							this.currentY,
+							this.contentWidth - 10,
+							5,
+						);
+						this.currentY += Math.max(5, criteriaHeight);
+					});
+
+					this.currentY += 10;
+				}
+
+				if (hasMultipleLots || lotEvaluations.length > 1) {
+					this.addSubSectionTitle(
+						lotEvaluations.length > 1
+							? `Avaluació - ${evaluation.proposalName}`
+							: 'Avaluació per Criteris',
+					);
+				}
+
+				evaluation.criteria.forEach(
+					(criterion: any, criterionIndex: number) => {
+						this.checkPageBreak(80);
+						this.addCriterionEvaluation(criterion, criterionIndex + 1);
+					},
+				);
+
+				if (hasMultipleLots || lotEvaluations.length > 1) {
+					this.checkPageBreak(30);
+
+					this.doc.setFontSize(12);
+					this.doc.setTextColor(3, 105, 161);
+					this.doc.setFont('helvetica', 'bold');
+					this.doc.text(
+						lotEvaluations.length > 1
+							? `Anàlisi - ${evaluation.proposalName}:`
+							: `Anàlisi per Lot ${evaluation.lotNumber}:`,
+						this.margin,
+						this.currentY,
+					);
+					this.currentY += 10;
+
+					this.doc.setFontSize(10);
+					this.doc.setTextColor(3, 105, 161);
+					this.doc.setFont('helvetica', 'normal');
+					const contentHeight = this.addWrappedText(
+						evaluation.recommendation,
+						this.margin,
+						this.currentY,
+						this.contentWidth,
+					);
+					this.currentY += contentHeight + 10;
+				} else {
+					this.checkPageBreak(30);
+
+					this.doc.setFontSize(12);
+					this.doc.setTextColor(3, 105, 161);
+					this.doc.setFont('helvetica', 'bold');
+					this.doc.text('Anàlisi de la Proposta:', this.margin, this.currentY);
+					this.currentY += 10;
+
+					this.doc.setFontSize(10);
+					this.doc.setTextColor(3, 105, 161);
+					this.doc.setFont('helvetica', 'normal');
+					const contentHeight = this.addWrappedText(
+						evaluation.recommendation,
+						this.margin,
+						this.currentY,
+						this.contentWidth,
+					);
+					this.currentY += contentHeight + 10;
+				}
+
+				if (evalIndex < lotEvaluations.length - 1) {
+					this.currentY += 10;
+				}
 			});
-
-			// Lot recommendation - Simplified without background box
-			if (hasMultipleLots) {
-				this.checkPageBreak(30);
-
-				// Add title first with proper spacing
-				this.doc.setFontSize(12);
-				this.doc.setTextColor(3, 105, 161);
-				this.doc.setFont('helvetica', 'bold');
-				this.doc.text(
-					`Anàlisi per Lot ${lot.lotNumber}:`,
-					this.margin,
-					this.currentY,
-				);
-				this.currentY += 10; // Spacing after title
-
-				// Add the content directly without background box
-				this.doc.setFontSize(10);
-				this.doc.setTextColor(3, 105, 161);
-				this.doc.setFont('helvetica', 'normal');
-				const contentHeight = this.addWrappedText(
-					lot.recommendation,
-					this.margin,
-					this.currentY,
-					this.contentWidth,
-				);
-				this.currentY += contentHeight + 10; // Small margin after content
-			} else {
-				// For single lot, add recommendation at the end
-				this.checkPageBreak(30);
-
-				// Add title first with proper spacing
-				this.doc.setFontSize(12);
-				this.doc.setTextColor(3, 105, 161);
-				this.doc.setFont('helvetica', 'bold');
-				this.doc.text('Anàlisi de la Proposta:', this.margin, this.currentY);
-				this.currentY += 10; // Spacing after title
-
-				// Add the content directly without background box
-				this.doc.setFontSize(10);
-				this.doc.setTextColor(3, 105, 161);
-				this.doc.setFont('helvetica', 'normal');
-				const contentHeight = this.addWrappedText(
-					lot.recommendation,
-					this.margin,
-					this.currentY,
-					this.contentWidth,
-				);
-				this.currentY += contentHeight + 10; // Small margin after content
-			}
 		});
 	}
 
 	private addCriterionEvaluation(criterion: any, index: number): void {
-		// Criterion title
 		this.doc.setFontSize(12);
 		this.doc.setTextColor(0, 0, 0);
 		this.doc.setFont('helvetica', 'bold');
@@ -420,7 +820,6 @@ export class PDFGeneratorService {
 		);
 		this.currentY += titleHeight + 5;
 
-		// Score
 		const scoreTexts = {
 			COMPLEIX_EXITOSAMENT: 'Compleix exitosament',
 			REGULAR: 'Regular',
@@ -437,7 +836,6 @@ export class PDFGeneratorService {
 		);
 		this.currentY += 10;
 
-		// Justification
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'bold');
@@ -453,7 +851,6 @@ export class PDFGeneratorService {
 		);
 		this.currentY += justificationHeight + 8;
 
-		// Strengths
 		if (criterion.strengths.length > 0) {
 			this.checkPageBreak(20 + criterion.strengths.length * 5);
 
@@ -481,7 +878,6 @@ export class PDFGeneratorService {
 			this.currentY += 5;
 		}
 
-		// Improvements
 		if (criterion.improvements.length > 0) {
 			this.checkPageBreak(20 + criterion.improvements.length * 5);
 
@@ -509,9 +905,8 @@ export class PDFGeneratorService {
 			this.currentY += 5;
 		}
 
-		// References
 		if (criterion.references.length > 0) {
-			this.checkPageBreak(20); // Increased space check
+			this.checkPageBreak(20);
 
 			this.doc.setFontSize(9);
 			this.doc.setTextColor(100, 100, 100);
@@ -526,8 +921,7 @@ export class PDFGeneratorService {
 			this.currentY += referencesHeight;
 		}
 
-		// Separator line
-		this.checkPageBreak(15); // Check space before adding separator
+		this.checkPageBreak(15);
 		this.doc.setDrawColor(200, 200, 200);
 		this.doc.setLineWidth(0.5);
 		this.doc.line(
@@ -540,21 +934,18 @@ export class PDFGeneratorService {
 	}
 
 	private addOverallRecommendation(evaluationResult: EvaluationResult): void {
-		this.checkPageBreak(50); // Increased space check for safety
+		this.checkPageBreak(50);
 
-		// Add title first with proper spacing
 		this.doc.setFontSize(14);
 		this.doc.setTextColor(25, 152, 117);
 		this.doc.setFont('helvetica', 'bold');
 		this.doc.text('ANÀLISI GENERAL', this.margin, this.currentY);
-		this.currentY += 12; // Spacing after title
+		this.currentY += 12;
 
-		// Add the content directly without background box
 		this.doc.setFontSize(10);
-		this.doc.setTextColor(3, 105, 161); // Blue color
+		this.doc.setTextColor(3, 105, 161);
 		this.doc.setFont('helvetica', 'normal');
 
-		// Check if we need more space for the content
 		const lines = this.doc.splitTextToSize(
 			evaluationResult.overallRecommendation,
 			this.contentWidth,

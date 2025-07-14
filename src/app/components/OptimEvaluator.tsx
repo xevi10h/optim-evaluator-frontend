@@ -17,6 +17,7 @@ import type {
 	BasicInfo,
 	ProposalFile,
 	LotInfo,
+	ProposalComparison,
 } from '@/types';
 
 export default function OptimEvaluator() {
@@ -139,10 +140,21 @@ export default function OptimEvaluator() {
 		pdfGenerator.generateEvaluationReport(evaluationResult, basicInfo);
 	};
 
+	const generateComparisonPDF = (comparison: ProposalComparison) => {
+		const pdfGenerator = new PDFGeneratorService();
+		pdfGenerator.generateComparisonReport(comparison, basicInfo);
+	};
+
 	const shouldShowProposalSection =
 		specificationFiles.length > 0 && extractedLots.length > 0 && !isLoadingLots;
 
 	const isProcessing = isLoadingLots;
+
+	const specifications = specificationFiles.map((file) => ({
+		name: file.name,
+		content: file.content,
+		type: 'specification' as const,
+	}));
 
 	return (
 		<div
@@ -307,7 +319,9 @@ export default function OptimEvaluator() {
 						{evaluationResult && (
 							<EvaluationResults
 								evaluationResult={evaluationResult}
+								specifications={specifications}
 								onDownloadPDF={generatePDF}
+								onDownloadComparisonPDF={generateComparisonPDF}
 							/>
 						)}
 					</div>
