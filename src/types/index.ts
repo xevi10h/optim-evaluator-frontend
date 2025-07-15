@@ -30,8 +30,8 @@ export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
 	proposalName: string;
-	companyName: string | null;
-	companyConfidence: number;
+	companyName: string | null; // Nom de l'empresa o null si no s'ha pogut identificar
+	companyConfidence: number; // Confiança de la identificació d'empresa (0-1)
 	hasProposal: boolean;
 	criteria: EvaluationCriteria[];
 	summary: string;
@@ -51,7 +51,7 @@ export interface CriterionComparison {
 	criterion: string;
 	proposals: Array<{
 		proposalName: string;
-		companyName: string | null; // NOU CAMP
+		companyName: string | null; // Nom de l'empresa o null
 		score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 		arguments: string[];
 		position: number;
@@ -60,7 +60,7 @@ export interface CriterionComparison {
 
 export interface ComparisonRanking {
 	proposalName: string;
-	companyName: string | null; // NOU CAMP
+	companyName: string | null; // Nom de l'empresa o null
 	position: number;
 	overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
 	strengths: string[];
@@ -72,7 +72,7 @@ export interface ProposalComparison {
 	lotNumber: number;
 	lotTitle: string;
 	proposalNames: string[];
-	companyNames: (string | null)[]; // NOU CAMP
+	companyNames: (string | null)[]; // Array de noms d'empresa o null
 	criteriaComparisons: CriterionComparison[];
 	globalRanking: ComparisonRanking[];
 	summary: string;
@@ -170,29 +170,34 @@ export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
 
+// FUNCIONS SIMPLIFICADES PER GESTIÓ D'EMPRESES
+
+/**
+ * Retorna el nom a mostrar: nom d'empresa si està disponible, sinó nom del document amb indicació
+ */
 export function getDisplayName(
 	companyName: string | null,
 	proposalName: string,
 ): string {
-	if (companyName) {
+	if (companyName && companyName.trim().length > 0) {
 		return companyName;
 	}
-
 	return `${proposalName} (empresa no identificada)`;
 }
 
+/**
+ * Retorna un nom curt per mostrar en espais reduïts
+ */
 export function getShortDisplayName(
 	companyName: string | null,
 	proposalName: string,
 ): string {
-	if (companyName) {
-		// Si el nom de l'empresa és molt llarg, el retallem
+	if (companyName && companyName.trim().length > 0) {
 		return companyName.length > 30
 			? `${companyName.substring(0, 27)}...`
 			: companyName;
 	}
 
-	// Si no tenim empresa, mostrem el nom del document de forma abreujada
 	const shortName =
 		proposalName.length > 20
 			? `${proposalName.substring(0, 17)}...`
@@ -200,15 +205,34 @@ export function getShortDisplayName(
 	return `${shortName} (no identificada)`;
 }
 
+/**
+ * Comprova si tenim informació d'empresa identificada
+ */
 export function hasCompanyInfo(evaluation: LotEvaluation): boolean {
 	return (
 		evaluation.companyName !== null && evaluation.companyName.trim().length > 0
 	);
 }
 
+/**
+ * Converteix la confiança numèrica en text descriptiu
+ */
 export function getCompanyConfidenceText(confidence: number): string {
 	if (confidence >= 0.8) return 'Alta confiança';
 	if (confidence >= 0.6) return 'Confiança mitjana';
 	if (confidence >= 0.4) return 'Baixa confiança';
-	return 'Molt baixa confiança';
+	if (confidence > 0) return 'Molt baixa confiança';
+	return 'No identificada';
+}
+
+/**
+ * Retorna el nom de l'empresa o un text per defecte
+ */
+export function getCompanyNameOrDefault(
+	companyName: string | null,
+	defaultText: string = 'Empresa no especificada',
+): string {
+	return companyName && companyName.trim().length > 0
+		? companyName
+		: defaultText;
 }

@@ -34,10 +34,6 @@ export default function EvaluationResults({
 	onDownloadComparisonPDF,
 }: EvaluationResultsProps) {
 	const hasMultipleLots = evaluationResult.extractedLots.length > 1;
-	const totalCriteria = evaluationResult.lots.reduce(
-		(sum, lot) => sum + lot.criteria.length,
-		0,
-	);
 
 	const groupEvaluationsByLot = () => {
 		const grouped = new Map();
@@ -54,15 +50,16 @@ export default function EvaluationResults({
 
 	const groupedEvaluations = groupEvaluationsByLot();
 
-	const totalProposals = evaluationResult.lots.filter(
-		(lot) => lot.hasProposal,
-	).length;
 	const averageConfidence = Math.round(
 		evaluationResult.overallConfidence * 100,
 	);
 
 	const companiesIdentified = evaluationResult.lots.filter(
 		(lot) => lot.hasProposal && hasCompanyInfo(lot),
+	).length;
+
+	const totalProposals = evaluationResult.lots.filter(
+		(lot) => lot.hasProposal,
 	).length;
 
 	return (
@@ -136,6 +133,13 @@ export default function EvaluationResults({
 								</p>
 								<p className="text-2xl font-bold text-purple-900">
 									{companiesIdentified}/{totalProposals}
+								</p>
+								<p className="text-xs text-purple-600 mt-1">
+									{totalProposals > 0
+										? `${Math.round(
+												(companiesIdentified / totalProposals) * 100,
+										  )}% identificades`
+										: 'Sense propostes'}
 								</p>
 							</div>
 							<div className="p-3 bg-purple-200 rounded-full">

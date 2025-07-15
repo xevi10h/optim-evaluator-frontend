@@ -14,7 +14,12 @@ import {
 import CollapsibleSection from './CollapsibleSection';
 import ProposalEvaluation from './ProposalEvaluation';
 import ComparisonComponent from './ComparisonComponent';
-import { getDisplayName, getShortDisplayName, hasCompanyInfo } from '@/types';
+import {
+	getDisplayName,
+	getShortDisplayName,
+	hasCompanyInfo,
+	getCompanyConfidenceText,
+} from '@/types';
 import type {
 	LotInfo,
 	LotEvaluation,
@@ -41,6 +46,98 @@ export default function LotEvaluationComponent({
 		(evaluation) => evaluation.hasProposal,
 	);
 	const canCompare = proposalsWithEvaluations.length >= 2;
+
+	// Crear badge informatiu per empresa/document
+	const createCompanyBadge = (evaluation: LotEvaluation) => {
+		const showCompanyIcon = hasCompanyInfo(evaluation);
+		const displayName = getShortDisplayName(
+			evaluation.companyName,
+			evaluation.proposalName,
+		);
+		const confidenceText = getCompanyConfidenceText(
+			evaluation.companyConfidence,
+		);
+
+		return (
+			<div className="flex items-center space-x-2">
+				{showCompanyIcon ? (
+					<Building className="h-4 w-4 text-slate-600" />
+				) : (
+					<FileText className="h-4 w-4 text-slate-600" />
+				)}
+				<span className="text-sm font-medium">{displayName}</span>
+				{showCompanyIcon ? (
+					<span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+						✓ {confidenceText}
+					</span>
+				) : (
+					<span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+						⚠ No identificada
+					</span>
+				)}
+			</div>
+		);
+	};
+
+	// Crear badge amb puntuacions per criteris
+	const createScoreBadge = (evaluation: LotEvaluation) => {
+		const criteriaCount = evaluation.criteria.length;
+		const excellentCount = evaluation.criteria.filter(
+			(c) => c.score === 'COMPLEIX_EXITOSAMENT',
+		).length;
+		const regularCount = evaluation.criteria.filter(
+			(c) => c.score === 'REGULAR',
+		).length;
+		const insufficientCount = evaluation.criteria.filter(
+			(c) => c.score === 'INSUFICIENT',
+		).length;
+
+		const items = [];
+
+		if (excellentCount > 0) {
+			items.push(
+				<div
+					key="excellent"
+					className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full"
+				>
+					<CheckCircle className="h-3 w-3 text-green-600" />
+					<span className="text-xs font-medium text-green-700">
+						{excellentCount}
+					</span>
+				</div>,
+			);
+		}
+
+		if (regularCount > 0) {
+			items.push(
+				<div
+					key="regular"
+					className="flex items-center space-x-1 bg-yellow-100 px-2 py-1 rounded-full"
+				>
+					<AlertCircle className="h-3 w-3 text-yellow-600" />
+					<span className="text-xs font-medium text-yellow-700">
+						{regularCount}
+					</span>
+				</div>,
+			);
+		}
+
+		if (insufficientCount > 0) {
+			items.push(
+				<div
+					key="insufficient"
+					className="flex items-center space-x-1 bg-red-100 px-2 py-1 rounded-full"
+				>
+					<XCircle className="h-3 w-3 text-red-600" />
+					<span className="text-xs font-medium text-red-700">
+						{insufficientCount}
+					</span>
+				</div>,
+			);
+		}
+
+		return <div className="flex items-center space-x-2">{items}</div>;
+	};
 
 	if (evaluations.length === 0) {
 		return (
@@ -88,6 +185,11 @@ export default function LotEvaluationComponent({
 		);
 	}
 
+	// Comptar empreses identificades per aquest lot
+	const companiesIdentified = proposalsWithEvaluations.filter((evaluation) =>
+		hasCompanyInfo(evaluation),
+	).length;
+
 	return (
 		<div className="space-y-6">
 			{hasMultipleLots && (
@@ -99,7 +201,9 @@ export default function LotEvaluationComponent({
 					<h4 className="text-lg font-semibold" style={{ color: '#1c1c1c' }}>
 						Lot {lotInfo.lotNumber}: {lotInfo.title}
 					</h4>
-					{proposalsWithEvaluations.length > 1 && (
+
+					{/* Badge amb informació de propostes */}
+					{proposalsWithEvaluations.length > 1 ? (
 						<div
 							className="flex items-center space-x-1 px-3 py-1 rounded-full"
 							style={{ backgroundColor: '#dfe7e6' }}
@@ -110,6 +214,46 @@ export default function LotEvaluationComponent({
 								style={{ color: '#199875' }}
 							>
 								{proposalsWithEvaluations.length} propostes
+							</span>
+						</div>
+					) : (
+						<div
+							className="flex items-center space-x-1 px-3 py-1 rounded-full"
+							style={{ backgroundColor: '#e3f2fd' }}
+						>
+							<FileText className="h-4 w-4" style={{ color: '#1976d2' }} />
+							<span
+								className="text-xs font-medium"
+								style={{ color: '#1976d2' }}
+							>
+								1 proposta
+							</span>
+						</div>
+					)}
+
+					{/* Badge amb empreses identificades */}
+					{proposalsWithEvaluations.length > 0 && (
+						<div
+							className="flex items-center space-x-1 px-3 py-1 rounded-full"
+							style={{
+								backgroundColor:
+									companiesIdentified > 0 ? '#e8f5e8' : '#fff3e0',
+							}}
+						>
+							<Building
+								className="h-4 w-4"
+								style={{
+									color: companiesIdentified > 0 ? '#2e7d32' : '#f57c00',
+								}}
+							/>
+							<span
+								className="text-xs font-medium"
+								style={{
+									color: companiesIdentified > 0 ? '#2e7d32' : '#f57c00',
+								}}
+							>
+								{companiesIdentified}/{proposalsWithEvaluations.length}{' '}
+								identificades
 							</span>
 						</div>
 					)}
@@ -148,60 +292,25 @@ export default function LotEvaluationComponent({
 								? '#f59e0b'
 								: '#dc2626';
 
-						const displayName = getShortDisplayName(
+						const displayName = getDisplayName(
 							evaluation.companyName,
 							evaluation.proposalName,
 						);
 						const showCompanyIcon = hasCompanyInfo(evaluation);
+						const confidenceText = getCompanyConfidenceText(
+							evaluation.companyConfidence,
+						);
 
-						// Crear badge amb millor separació i icones
-						const createScoreBadge = () => {
-							const items = [];
-
-							if (excellentCount > 0) {
-								items.push(
-									<div
-										key="excellent"
-										className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full"
-									>
-										<CheckCircle className="h-3 w-3 text-green-600" />
-										<span className="text-xs font-medium text-green-700">
-											{excellentCount}
-										</span>
-									</div>,
-								);
-							}
-
-							if (regularCount > 0) {
-								items.push(
-									<div
-										key="regular"
-										className="flex items-center space-x-1 bg-yellow-100 px-2 py-1 rounded-full"
-									>
-										<AlertCircle className="h-3 w-3 text-yellow-600" />
-										<span className="text-xs font-medium text-yellow-700">
-											{regularCount}
-										</span>
-									</div>,
-								);
-							}
-
-							if (insufficientCount > 0) {
-								items.push(
-									<div
-										key="insufficient"
-										className="flex items-center space-x-1 bg-red-100 px-2 py-1 rounded-full"
-									>
-										<XCircle className="h-3 w-3 text-red-600" />
-										<span className="text-xs font-medium text-red-700">
-											{insufficientCount}
-										</span>
-									</div>,
-								);
-							}
-
-							return <div className="flex items-center space-x-2">{items}</div>;
-						};
+						// Crear un subtítol més informatiu
+						const subtitle = [
+							`Confiança avaluació: ${Math.round(
+								evaluation.confidence * 100,
+							)}%`,
+							`${criteriaCount} criteris avaluats`,
+							showCompanyIcon
+								? `Empresa: ${confidenceText}`
+								: 'Empresa no identificada',
+						].join(' | ');
 
 						return (
 							<div
@@ -214,9 +323,7 @@ export default function LotEvaluationComponent({
 							>
 								<CollapsibleSection
 									title={displayName}
-									subtitle={`Confiança: ${Math.round(
-										evaluation.confidence * 100,
-									)}% | ${criteriaCount} criteris avaluats`}
+									subtitle={subtitle}
 									icon={
 										showCompanyIcon ? (
 											<Building
@@ -233,7 +340,12 @@ export default function LotEvaluationComponent({
 									isOpenByDefault={false}
 									badgeText=""
 									badgeColor={badgeColor}
-									customBadge={createScoreBadge()}
+									customBadge={
+										<div className="flex items-center space-x-3">
+											{createCompanyBadge(evaluation)}
+											{createScoreBadge(evaluation)}
+										</div>
+									}
 									headerBgColor="#f8f9fa"
 									className="transition-all duration-300 hover:shadow-md"
 								>
@@ -261,6 +373,28 @@ export default function LotEvaluationComponent({
 						isOpenByDefault={false}
 						badgeText="Comparar"
 						badgeColor="#3b82f6"
+						customBadge={
+							<div className="flex items-center space-x-2">
+								<span
+									className="px-3 py-1 rounded-full text-sm font-medium text-white"
+									style={{ backgroundColor: '#3b82f6' }}
+								>
+									Comparar
+								</span>
+								<div
+									className="flex items-center space-x-1 px-2 py-1 rounded-full"
+									style={{ backgroundColor: '#e3f2fd' }}
+								>
+									<Building className="h-3 w-3" style={{ color: '#1976d2' }} />
+									<span
+										className="text-xs font-medium"
+										style={{ color: '#1976d2' }}
+									>
+										{companiesIdentified}/{proposalsWithEvaluations.length}
+									</span>
+								</div>
+							</div>
+						}
 						headerBgColor="#f0f9ff"
 						headerColor="#1e40af"
 						className="border-2 border-dashed transition-all duration-300 hover:border-solid hover:shadow-lg"

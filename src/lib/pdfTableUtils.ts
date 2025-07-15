@@ -170,6 +170,7 @@ export class PDFTableUtils {
 			criterion: string;
 			proposals: Array<{
 				proposalName: string;
+				companyName: string | null;
 				score: string;
 				position: number;
 			}>;
@@ -200,7 +201,12 @@ export class PDFTableUtils {
 			criterionComp.proposals.forEach((proposal) => {
 				const positionIcon = this.getPositionText(proposal.position);
 				const scoreText = this.getScoreText(proposal.score);
-				cells.push(`${positionIcon} ${scoreText}`);
+				const companyIndicator =
+					proposal.companyName !== null &&
+					proposal.companyName.trim().length > 0
+						? '[E]'
+						: '[D]';
+				cells.push(`${positionIcon} ${scoreText} ${companyIndicator}`);
 			});
 
 			return { cells };
@@ -208,9 +214,9 @@ export class PDFTableUtils {
 
 		return this.drawTable(columns, rows, startY, {
 			headerHeight: 15,
-			rowHeight: 14,
-			fontSize: 8,
-			headerFontSize: 9,
+			rowHeight: 16,
+			fontSize: 7,
+			headerFontSize: 8,
 			maxRowsPerPage: 25,
 		});
 	}
@@ -231,13 +237,13 @@ export class PDFTableUtils {
 	private getScoreText(score: string): string {
 		switch (score) {
 			case 'COMPLEIX_EXITOSAMENT':
-				return 'COMPLEIX';
+				return 'COMP';
 			case 'REGULAR':
-				return 'REGULAR';
+				return 'REG';
 			case 'INSUFICIENT':
-				return 'INSUF';
+				return 'INS';
 			default:
-				return score.substring(0, 6);
+				return score.substring(0, 4);
 		}
 	}
 }

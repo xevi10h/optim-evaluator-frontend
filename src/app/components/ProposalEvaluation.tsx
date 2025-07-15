@@ -41,20 +41,17 @@ export default function ProposalEvaluation({
 						</h6>
 						<p className="text-blue-800 font-medium">{displayName}</p>
 
-						{showCompanyInfo && (
+						{showCompanyInfo ? (
 							<div className="flex items-center space-x-2 mt-2">
 								<Info className="h-4 w-4 text-blue-600" />
 								<span className="text-xs text-blue-700">
-									Confiança d'identificació: {confidenceText} (
+									Identificació: {confidenceText} (
 									{Math.round(evaluation.companyConfidence * 100)}%)
 								</span>
 							</div>
-						)}
-
-						{!showCompanyInfo && (
+						) : (
 							<p className="text-xs text-gray-600 mt-1">
-								No s'ha pogut identificar automàticament el nom de l'empresa en
-								aquesta proposta
+								Empresa no identificada automàticament
 							</p>
 						)}
 					</div>

@@ -14,7 +14,12 @@ import {
 	Building,
 	FileText,
 } from 'lucide-react';
-import { getDisplayName, getShortDisplayName, hasCompanyInfo } from '@/types';
+import {
+	getDisplayName,
+	getShortDisplayName,
+	hasCompanyInfo,
+	getCompanyNameOrDefault,
+} from '@/types';
 import type {
 	ProposalComparison,
 	LotEvaluation,
@@ -132,6 +137,32 @@ export default function ComparisonComponent({
 			default:
 				return '#6f6f6f';
 		}
+	};
+
+	// Crear badge informatiu per empresa/document
+	const createCompanyBadge = (
+		companyName: string | null,
+		proposalName: string,
+	) => {
+		const showCompanyIcon =
+			companyName !== null && companyName.trim().length > 0;
+		const displayName = getShortDisplayName(companyName, proposalName);
+
+		return (
+			<div className="flex items-center space-x-2">
+				{showCompanyIcon ? (
+					<Building className="h-4 w-4 text-slate-600" />
+				) : (
+					<FileText className="h-4 w-4 text-slate-600" />
+				)}
+				<span className="text-sm font-medium">{displayName}</span>
+				{showCompanyIcon && (
+					<span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+						✓ Identificada
+					</span>
+				)}
+			</div>
+		);
 	};
 
 	if (!comparison && !isComparing) {
@@ -253,6 +284,22 @@ export default function ComparisonComponent({
 		);
 	}
 
+	// Calcular noms d'empresa per mostrar
+	const displayNames = comparison.proposalNames.map((name, index) => {
+		const companyName = comparison.companyNames[index];
+		return getDisplayName(companyName, name);
+	});
+
+	const shortDisplayNames = comparison.proposalNames.map((name, index) => {
+		const companyName = comparison.companyNames[index];
+		return getShortDisplayName(companyName, name);
+	});
+
+	// Comptar empreses identificades
+	const companiesIdentified = comparison.companyNames.filter(
+		(name) => name !== null && name.trim().length > 0,
+	).length;
+
 	return (
 		<div className="p-6 space-y-8">
 			{/* Header millorat */}
@@ -271,7 +318,11 @@ export default function ComparisonComponent({
 					</div>
 					<div className="text-right">
 						<p className="text-sm opacity-90">
-							{comparison.proposalNames.length} empreses analitzades
+							{comparison.proposalNames.length} propostes analitzades
+						</p>
+						<p className="text-sm opacity-90">
+							{companiesIdentified}/{comparison.proposalNames.length} empreses
+							identificades
 						</p>
 						<p className="text-lg font-semibold">
 							Confiança: {Math.round(comparison.confidence * 100)}%
@@ -307,7 +358,9 @@ export default function ComparisonComponent({
 							ranking.companyName,
 							ranking.proposalName,
 						);
-						const showCompanyIcon = ranking.companyName !== null;
+						const showCompanyIcon =
+							ranking.companyName !== null &&
+							ranking.companyName.trim().length > 0;
 
 						return (
 							<div
@@ -347,6 +400,11 @@ export default function ComparisonComponent({
 												>
 													{ranking.overallScore}
 												</span>
+												{!showCompanyIcon && (
+													<p className="text-xs text-gray-500 mt-1">
+														Empresa no identificada
+													</p>
+												)}
 											</div>
 										</div>
 									</div>
@@ -355,6 +413,25 @@ export default function ComparisonComponent({
 								<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 									{ranking.strengths.length > 0 && (
 										<div className="bg-green-50 rounded-lg p-4 border border-green-200">
+											<h6 className="font-bold text-green-800 mb-3">
+												Punts Forts Principals
+											</h6>
+											<ul className="space-y-2">
+												{ranking.strengths.map((strength, i) => (
+													<li
+														key={i}
+														className="text-sm text-green-700 flex items-start"
+													>
+														<span className="text-green-500 mr-2 mt-1">•</span>
+														<span>{strength}</span>
+													</li>
+												))}
+											</ul>
+										</div>
+									)}
+
+									{ranking.weaknesses.length > 0 && (
+										<div className="bg-red-50 rounded-lg p-4 border border-red-200">
 											<h6 className="font-bold text-red-800 mb-3">
 												Punts Febles Principals
 											</h6>
@@ -404,16 +481,18 @@ export default function ComparisonComponent({
 									<th className="px-6 py-4 text-left font-bold text-slate-900 border-b border-slate-300">
 										Criteri
 									</th>
-									{comparison.proposalNames.map((name, index) => {
+									{shortDisplayNames.map((displayName, index) => {
 										const companyName = comparison.companyNames[index];
-										const displayName = getShortDisplayName(companyName, name);
+										const showCompanyIcon =
+											companyName !== null && companyName.trim().length > 0;
+
 										return (
 											<th
-												key={name}
+												key={comparison.proposalNames[index]}
 												className="px-6 py-4 text-center font-bold text-slate-900 border-b border-slate-300"
 											>
 												<div className="flex flex-col items-center space-y-1">
-													{companyName ? (
+													{showCompanyIcon ? (
 														<Building className="h-4 w-4 text-slate-600" />
 													) : (
 														<FileText className="h-4 w-4 text-slate-600" />
@@ -488,7 +567,9 @@ export default function ComparisonComponent({
 											proposal.companyName,
 											proposal.proposalName,
 										);
-										const showCompanyIcon = proposal.companyName !== null;
+										const showCompanyIcon =
+											proposal.companyName !== null &&
+											proposal.companyName.trim().length > 0;
 
 										return (
 											<div

@@ -5,7 +5,12 @@ import type {
 	ProposalComparison,
 	LotEvaluation,
 } from '@/types';
-import { getDisplayName, hasCompanyInfo } from '@/types';
+import {
+	getDisplayName,
+	hasCompanyInfo,
+	getCompanyNameOrDefault,
+	getCompanyConfidenceText,
+} from '@/types';
 import { PDFTableUtils } from './pdfTableUtils';
 
 export class PDFGeneratorService {
@@ -91,11 +96,13 @@ export class PDFGeneratorService {
 		evaluation: LotEvaluation,
 	): string {
 		const dateStr = new Date().toISOString().split('T')[0];
-		const companyPart = evaluation.companyName
-			? this.cleanFileName(evaluation.companyName)
-			: this.cleanFileName(evaluation.proposalName);
+		const companyPart = getCompanyNameOrDefault(
+			evaluation.companyName,
+			`proposta_${evaluation.proposalName.substring(0, 20)}`,
+		);
+		const cleanCompanyPart = this.cleanFileName(companyPart);
 
-		return `avaluacio_${basicInfo.expedient}_${companyPart}_${dateStr}.pdf`;
+		return `avaluacio_${basicInfo.expedient}_${cleanCompanyPart}_${dateStr}.pdf`;
 	}
 
 	private addSingleEvaluationContent(evaluation: LotEvaluation): void {
@@ -160,6 +167,9 @@ export class PDFGeneratorService {
 			evaluation.proposalName,
 		);
 		const showCompanyInfo = hasCompanyInfo(evaluation);
+		const confidenceText = getCompanyConfidenceText(
+			evaluation.companyConfidence,
+		);
 
 		const infoItems = [
 			['Títol:', basicInfo.title],
@@ -180,8 +190,15 @@ export class PDFGeneratorService {
 
 		if (showCompanyInfo) {
 			infoItems.push([
-				"Confiança d'identificació empresa:",
-				`${Math.round(evaluation.companyConfidence * 100)}%`,
+				'Identificació empresa:',
+				`${confidenceText} (${Math.round(
+					evaluation.companyConfidence * 100,
+				)}%)`,
+			]);
+		} else {
+			infoItems.push([
+				'Identificació empresa:',
+				'No identificada automàticament',
 			]);
 		}
 
@@ -226,15 +243,16 @@ export class PDFGeneratorService {
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
 
-		// Crear llista de noms d'empreses/documents
+		// Crear llista de noms d'empreses/documents amb noms nets per PDF
 		const displayNames = comparison.proposalNames.map((name, index) => {
 			const companyName = comparison.companyNames[index];
-			return getDisplayName(companyName, name);
+			return this.cleanFileName(getDisplayName(companyName, name));
 		});
 
-		const cleanDisplayNames = displayNames.map((name) =>
-			this.cleanFileName(name),
-		);
+		// Comptar empreses identificades
+		const companiesIdentified = comparison.companyNames.filter(
+			(name) => name !== null && name.trim().length > 0,
+		).length;
 
 		const infoItems = [
 			['Títol:', basicInfo.title],
@@ -242,7 +260,11 @@ export class PDFGeneratorService {
 			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
 			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
 			['Lot comparat:', `${comparison.lotNumber} - ${comparison.lotTitle}`],
-			['Empreses/Propostes comparades:', cleanDisplayNames.join(', ')],
+			['Propostes comparades:', displayNames.join(', ')],
+			[
+				'Empreses identificades:',
+				`${companiesIdentified}/${comparison.proposalNames.length}`,
+			],
 			[
 				'Confiança de la comparació:',
 				`${Math.round(comparison.confidence * 100)}%`,
@@ -275,6 +297,8 @@ export class PDFGeneratorService {
 			const displayName = this.cleanFileName(
 				getDisplayName(ranking.companyName, ranking.proposalName),
 			);
+			const showCompanyInfo =
+				ranking.companyName !== null && ranking.companyName.trim().length > 0;
 
 			this.doc.setFontSize(12);
 			this.doc.setTextColor(25, 152, 117);
@@ -289,8 +313,10 @@ export class PDFGeneratorService {
 					? '3r'
 					: `${ranking.position}è`;
 
+			// Afegir indicador d'empresa identificada/no identificada
+			const companyStatus = showCompanyInfo ? '[EMPRESA]' : '[DOCUMENT]';
 			this.doc.text(
-				`${positionIcon} - ${displayName}`,
+				`${positionIcon} - ${displayName} ${companyStatus}`,
 				this.margin,
 				this.currentY,
 			);
@@ -305,6 +331,18 @@ export class PDFGeneratorService {
 				this.currentY,
 			);
 			this.currentY += 8;
+
+			if (!showCompanyInfo) {
+				this.doc.setFontSize(9);
+				this.doc.setTextColor(140, 140, 140);
+				this.doc.setFont('helvetica', 'italic');
+				this.doc.text(
+					'Nota: Empresa no identificada automàticament',
+					this.margin,
+					this.currentY,
+				);
+				this.currentY += 6;
+			}
 
 			if (ranking.strengths.length > 0) {
 				this.doc.setFont('helvetica', 'bold');
@@ -383,14 +421,20 @@ export class PDFGeneratorService {
 			this.contentWidth,
 		);
 
-		// Crear noms d'empreses/documents per la taula
+		// Crear noms per la taula amb indicadors d'empresa
 		const displayNames = comparison.proposalNames.map((name, index) => {
 			const companyName = comparison.companyNames[index];
 			const displayName = getDisplayName(companyName, name);
-			// Abreujar per la taula
-			return displayName.length > 25
-				? `${displayName.substring(0, 22)}...`
-				: displayName;
+			const showCompanyInfo =
+				companyName !== null && companyName.trim().length > 0;
+
+			// Abreujar per la taula i afegir indicador
+			const shortName =
+				displayName.length > 20
+					? `${displayName.substring(0, 17)}...`
+					: displayName;
+
+			return showCompanyInfo ? `${shortName} [E]` : `${shortName} [D]`;
 		});
 
 		const endY = tableUtils.createComparisonTable(
@@ -399,7 +443,17 @@ export class PDFGeneratorService {
 			this.currentY,
 		);
 
-		this.currentY = endY + 15;
+		// Afegir llegenda
+		this.currentY = endY + 10;
+		this.doc.setFontSize(8);
+		this.doc.setTextColor(100, 100, 100);
+		this.doc.setFont('helvetica', 'italic');
+		this.doc.text(
+			'[E] = Empresa identificada | [D] = Document sense empresa',
+			this.margin,
+			this.currentY,
+		);
+		this.currentY += 15;
 	}
 
 	private addDetailedCriteriaAnalysis(comparison: ProposalComparison): void {
@@ -426,6 +480,9 @@ export class PDFGeneratorService {
 				const displayName = this.cleanFileName(
 					getDisplayName(proposal.companyName, proposal.proposalName),
 				);
+				const showCompanyInfo =
+					proposal.companyName !== null &&
+					proposal.companyName.trim().length > 0;
 
 				this.doc.setFontSize(10);
 				this.doc.setTextColor(25, 152, 117);
@@ -447,12 +504,25 @@ export class PDFGeneratorService {
 						? 'Regular'
 						: 'Insuficient';
 
+				const companyStatus = showCompanyInfo ? '[EMPRESA]' : '[DOCUMENT]';
 				this.doc.text(
-					`${positionIcon} ${displayName} - ${scoreText}`,
+					`${positionIcon} ${displayName} ${companyStatus} - ${scoreText}`,
 					this.margin,
 					this.currentY,
 				);
 				this.currentY += 8;
+
+				if (!showCompanyInfo) {
+					this.doc.setFontSize(9);
+					this.doc.setTextColor(140, 140, 140);
+					this.doc.setFont('helvetica', 'italic');
+					this.doc.text(
+						'Empresa no identificada automàticament',
+						this.margin + 5,
+						this.currentY,
+					);
+					this.currentY += 6;
+				}
 
 				this.doc.setFontSize(9);
 				this.doc.setTextColor(60, 60, 60);
@@ -601,10 +671,24 @@ export class PDFGeneratorService {
 					evaluation.companyName,
 					evaluation.proposalName,
 				);
+				const showCompanyInfo = hasCompanyInfo(evaluation);
 
 				if (lotEvaluations.length > 1) {
 					this.checkPageBreak(20);
-					this.addSubSectionTitle(`Empresa/Proposta: ${displayName}`);
+					const companyStatus = showCompanyInfo ? '[EMPRESA]' : '[DOCUMENT]';
+					this.addSubSectionTitle(`${displayName} ${companyStatus}`);
+
+					if (!showCompanyInfo) {
+						this.doc.setFontSize(9);
+						this.doc.setTextColor(140, 140, 140);
+						this.doc.setFont('helvetica', 'italic');
+						this.doc.text(
+							'Empresa no identificada automàticament',
+							this.margin,
+							this.currentY,
+						);
+						this.currentY += 8;
+					}
 				}
 
 				if (hasMultipleLots || lotEvaluations.length > 1) {
