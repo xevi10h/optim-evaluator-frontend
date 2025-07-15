@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface CollapsibleSectionProps {
-	title: string;
+	title: string | React.ReactNode; // Cambiado para aceptar ReactNode
 	subtitle?: string;
 	icon?: React.ReactNode;
 	isOpenByDefault?: boolean;

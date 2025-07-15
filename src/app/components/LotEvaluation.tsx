@@ -44,7 +44,6 @@ export default function LotEvaluationComponent({
 
 	// Crear badge amb puntuacions per criteris
 	const createScoreBadge = (evaluation: LotEvaluation) => {
-		const criteriaCount = evaluation.criteria.length;
 		const excellentCount = evaluation.criteria.filter(
 			(c) => c.score === 'COMPLEIX_EXITOSAMENT',
 		).length;
@@ -100,6 +99,26 @@ export default function LotEvaluationComponent({
 		}
 
 		return <div className="flex items-center space-x-2">{items}</div>;
+	};
+
+	// Crear el título que incluye empresa y nombre del archivo
+	const createTitle = (evaluation: LotEvaluation) => {
+		const showCompanyInfo = hasCompanyInfo(evaluation);
+
+		if (showCompanyInfo) {
+			// Si tenemos empresa identificada, mostramos: "Nombre Empresa (nombre_archivo.pdf)"
+			return (
+				<div className="flex items-center space-x-2">
+					<span>{evaluation.companyName}</span>
+					<span className="text-gray-500 text-sm font-normal">
+						({evaluation.proposalName})
+					</span>
+				</div>
+			);
+		} else {
+			// Si no tenemos empresa, mostramos solo el archivo con indicación
+			return `${evaluation.proposalName} (empresa no identificada)`;
+		}
 	};
 
 	if (evaluations.length === 0) {
@@ -255,10 +274,6 @@ export default function LotEvaluationComponent({
 								? '#f59e0b'
 								: '#dc2626';
 
-						const displayName = getDisplayName(
-							evaluation.companyName,
-							evaluation.proposalName,
-						);
 						const showCompanyIcon = hasCompanyInfo(evaluation);
 
 						// Crear un subtítol més informatiu
@@ -274,7 +289,7 @@ export default function LotEvaluationComponent({
 								}}
 							>
 								<CollapsibleSection
-									title={displayName}
+									title={createTitle(evaluation)}
 									subtitle={subtitle}
 									icon={
 										showCompanyIcon ? (
