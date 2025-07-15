@@ -133,9 +133,6 @@ export default function ComparisonComponent({
 			<div className="p-6">
 				<div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-8 text-center border border-blue-200">
 					<div className="flex items-center justify-center space-x-3 mb-6">
-						<div className="p-3 bg-blue-200 rounded-full">
-							<GitCompare className="h-8 w-8 text-blue-700" />
-						</div>
 						<div>
 							<h4 className="text-xl font-bold text-blue-900 mb-2">
 								Comparació entre Propostes

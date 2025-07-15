@@ -9,6 +9,7 @@ interface EvaluationControlProps {
 	isProcessing: boolean;
 	error: string | null;
 	evaluationStatus: string;
+	totalProposals: number;
 }
 
 export default function EvaluationControl({
@@ -17,8 +18,21 @@ export default function EvaluationControl({
 	isProcessing,
 	error,
 	evaluationStatus,
+	totalProposals,
 }: EvaluationControlProps) {
 	const isDisabled = isEvaluating || isProcessing;
+
+	const getButtonText = () => {
+		if (isEvaluating) {
+			return totalProposals > 1
+				? 'Avaluant propostes...'
+				: 'Avaluant proposta...';
+		}
+		if (isProcessing) {
+			return 'Processant arxius...';
+		}
+		return totalProposals > 1 ? 'Avaluar Propostes' : 'Avaluar Proposta';
+	};
 
 	return (
 		<div
@@ -47,45 +61,55 @@ export default function EvaluationControl({
 					)}
 				</div>
 
-				<button
-					onClick={onEvaluate}
-					disabled={isDisabled}
-					className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 text-white ${
-						isDisabled
-							? 'cursor-not-allowed opacity-60'
-							: 'cursor-pointer hover:shadow-lg transform hover:scale-105'
-					}`}
-					style={{
-						backgroundColor: isDisabled ? '#949494' : '#199875',
-					}}
-					onMouseEnter={(e) => {
-						if (!isDisabled) {
-							e.currentTarget.style.backgroundColor = '#188869';
-						}
-					}}
-					onMouseLeave={(e) => {
-						if (!isDisabled) {
-							e.currentTarget.style.backgroundColor = '#199875';
-						}
-					}}
-				>
-					{isEvaluating ? (
-						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
-							<span>Avaluant...</span>
-						</>
-					) : isProcessing ? (
-						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
-							<span>Processant arxius...</span>
-						</>
-					) : (
-						<>
-							<Sparkles className="h-5 w-5" />
-							<span>Avaluar Proposta</span>
-						</>
+				<div className="flex items-center space-x-4">
+					{/* Mostrar informació del total de propostes */}
+					{totalProposals > 0 && !isDisabled && (
+						<div className="text-sm text-gray-600">
+							{totalProposals} {totalProposals === 1 ? 'proposta' : 'propostes'}{' '}
+							per avaluar
+						</div>
 					)}
-				</button>
+
+					<button
+						onClick={onEvaluate}
+						disabled={isDisabled}
+						className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 text-white ${
+							isDisabled
+								? 'cursor-not-allowed opacity-60'
+								: 'cursor-pointer hover:shadow-lg transform hover:scale-105'
+						}`}
+						style={{
+							backgroundColor: isDisabled ? '#949494' : '#199875',
+						}}
+						onMouseEnter={(e) => {
+							if (!isDisabled) {
+								e.currentTarget.style.backgroundColor = '#188869';
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (!isDisabled) {
+								e.currentTarget.style.backgroundColor = '#199875';
+							}
+						}}
+					>
+						{isEvaluating ? (
+							<>
+								<Loader2 className="h-5 w-5 animate-spin" />
+								<span>{getButtonText()}</span>
+							</>
+						) : isProcessing ? (
+							<>
+								<Loader2 className="h-5 w-5 animate-spin" />
+								<span>{getButtonText()}</span>
+							</>
+						) : (
+							<>
+								<Sparkles className="h-5 w-5" />
+								<span>{getButtonText()}</span>
+							</>
+						)}
+					</button>
+				</div>
 			</div>
 		</div>
 	);

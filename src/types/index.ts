@@ -86,6 +86,16 @@ export interface ProcessingState {
 	progress: number;
 }
 
+export interface EvaluationProgress {
+	currentProposal: string;
+	currentLot: number;
+	currentIndex: number;
+	totalProposals: number;
+	progress: number;
+	status: string;
+	completed?: boolean;
+}
+
 export interface BasicInfo {
 	title: string;
 	expedient: string;
@@ -153,3 +163,6 @@ export const MIN_JUSTIFICATION_LENGTH = 100;
 export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
+
+// Callback type for progress updates
+export type ProgressCallback = (progress: EvaluationProgress) => void;

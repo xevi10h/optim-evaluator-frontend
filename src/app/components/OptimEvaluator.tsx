@@ -8,6 +8,7 @@ import FileUploadSection from './FileUploadSection';
 import ProposalUploadSection from './ProposalUploadSection';
 import EvaluationControl from './EvaluationControl';
 import EvaluationResults from './EvaluationResults';
+import EvaluationLoader from './EvaluationLoader';
 import Tooltip from './Tooltip';
 import { apiService } from '@/lib/apiService';
 import { PDFGeneratorService } from '@/lib/pdfGenerator';
@@ -18,6 +19,7 @@ import type {
 	ProposalFile,
 	LotInfo,
 	ProposalComparison,
+	EvaluationProgress,
 } from '@/types';
 
 export default function OptimEvaluator() {
@@ -39,6 +41,8 @@ export default function OptimEvaluator() {
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
+	const [evaluationProgress, setEvaluationProgress] =
+		useState<EvaluationProgress | null>(null);
 
 	useEffect(() => {
 		const extractLots = async () => {
@@ -81,6 +85,21 @@ export default function OptimEvaluator() {
 		extractLots();
 	}, [specificationFiles]);
 
+	// Funció per calcular el nombre total de propostes
+	const getTotalProposals = () => {
+		const groupedByName = new Map<string, ProposalFile[]>();
+
+		proposalFiles.forEach((file) => {
+			const baseName = file.name.replace(/\s*\(.*?\)\s*/g, '').trim();
+			if (!groupedByName.has(baseName)) {
+				groupedByName.set(baseName, []);
+			}
+			groupedByName.get(baseName)!.push(file);
+		});
+
+		return groupedByName.size;
+	};
+
 	const handleEvaluate = async () => {
 		if (
 			!basicInfo.title ||
@@ -95,6 +114,7 @@ export default function OptimEvaluator() {
 		setIsEvaluating(true);
 		setError(null);
 		setEvaluationResult(null);
+		setEvaluationProgress(null);
 
 		try {
 			setEvaluationStatus('Connectant amb el servidor...');
@@ -112,15 +132,22 @@ export default function OptimEvaluator() {
 				lotNumber: file.lotNumber,
 			}));
 
-			setEvaluationStatus('Avaluant propostes per lots...');
+			setEvaluationStatus('Iniciant avaluació de propostes...');
+
 			const result = await apiService.evaluateProposalWithLots(
 				specifications,
 				proposals,
 				extractedLots,
+				(progress: EvaluationProgress) => {
+					console.log('Progress update received in component:', progress);
+					setEvaluationProgress(progress);
+					setEvaluationStatus(progress.status);
+				},
 			);
 
 			setEvaluationResult(result);
 			setEvaluationStatus('');
+			setEvaluationProgress(null);
 		} catch (err) {
 			setError(
 				`Error durant l'avaluació: ${
@@ -128,6 +155,7 @@ export default function OptimEvaluator() {
 				}`,
 			);
 			setEvaluationStatus('');
+			setEvaluationProgress(null);
 		} finally {
 			setIsEvaluating(false);
 		}
@@ -149,6 +177,7 @@ export default function OptimEvaluator() {
 		specificationFiles.length > 0 && extractedLots.length > 0 && !isLoadingLots;
 
 	const isProcessing = isLoadingLots;
+	const totalProposals = getTotalProposals();
 
 	const specifications = specificationFiles.map((file) => ({
 		name: file.name,
@@ -164,6 +193,12 @@ export default function OptimEvaluator() {
 			}}
 		>
 			<Header />
+
+			{/* Evaluation Loader */}
+			<EvaluationLoader
+				isVisible={isEvaluating}
+				progress={evaluationProgress}
+			/>
 
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="space-y-6">
@@ -314,6 +349,7 @@ export default function OptimEvaluator() {
 							isProcessing={isProcessing}
 							error={error}
 							evaluationStatus={evaluationStatus}
+							totalProposals={totalProposals}
 						/>
 
 						{evaluationResult && (
