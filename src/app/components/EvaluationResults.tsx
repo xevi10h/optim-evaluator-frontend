@@ -143,20 +143,6 @@ export default function EvaluationResults({
 							</div>
 						</div>
 					</div>
-
-					<div
-						className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border-l-4 hover:shadow-lg transition-shadow duration-300"
-						style={{ borderLeftColor: '#f97316' }}
-					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-orange-700">Confiança</p>
-							</div>
-							<div className="p-3 bg-orange-200 rounded-full">
-								<TrendingUp className="h-6 w-6 text-orange-700" />
-							</div>
-						</div>
-					</div>
 				</div>
 
 				{evaluationResult.overallSummary && (
