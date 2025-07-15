@@ -90,11 +90,11 @@ export default function ComparisonComponent({
 	const getScoreText = (score: string) => {
 		switch (score) {
 			case 'COMPLEIX_EXITOSAMENT':
-				return '🟢 Compleix exitosament';
+				return 'Compleix exitosament';
 			case 'REGULAR':
-				return '🟡 Regular';
+				return 'Regular';
 			case 'INSUFICIENT':
-				return '🔴 Insuficient';
+				return 'Insuficient';
 			default:
 				return score;
 		}
@@ -108,8 +108,10 @@ export default function ComparisonComponent({
 				return '🥈';
 			case 3:
 				return '🥉';
+			case 4:
+				return '4t';
 			default:
-				return `${position}°`;
+				return `${position}è`;
 		}
 	};
 
@@ -254,7 +256,7 @@ export default function ComparisonComponent({
 				<div className="flex items-center justify-between">
 					<div className="flex items-center space-x-4">
 						<div className="p-3 bg-white bg-opacity-20 rounded-full">
-							<GitCompare className="h-8 w-8" />
+							<GitCompare className="h-8 w-8" color="blue" />
 						</div>
 						<div>
 							<h3 className="text-2xl font-bold">Comparació de Propostes</h3>
@@ -429,18 +431,18 @@ export default function ComparisonComponent({
 												key={proposal.proposalName}
 												className="px-6 py-4 text-center border-b border-slate-200"
 											>
-												<div className="flex flex-col items-center space-y-2">
-													<span className="text-2xl">
+												<div className="flex flex-col items-center gap-4">
+													<div className="text-l">
 														{getPositionIcon(proposal.position)}
-													</span>
-													<span
-														className="px-3 py-1 rounded-full text-xs font-semibold text-white"
+													</div>
+													<div
+														className="px-3 py-1 rounded-full text-xs font-semibold text-white justify-center items-center"
 														style={{
 															backgroundColor: getScoreColor(proposal.score),
 														}}
 													>
 														{getScoreText(proposal.score)}
-													</span>
+													</div>
 												</div>
 											</td>
 										))}
@@ -481,15 +483,15 @@ export default function ComparisonComponent({
 											}`}
 										>
 											<div className="flex items-center justify-between mb-4">
-												<h6 className="font-bold text-slate-900">
+												<h6 className="font-bold text-slate-900 flex">
 													{proposal.proposalName}
 												</h6>
-												<div className="flex items-center space-x-2">
-													<span className="text-xl">
+												<div className="flex flex-col items-center gap-2 max-w-[30%] justify-center">
+													<span className="text-sm">
 														{getPositionIcon(proposal.position)}
 													</span>
 													<span
-														className="px-2 py-1 rounded-full text-xs font-semibold text-white"
+														className="flex whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold text-white justify-center items-center"
 														style={{
 															backgroundColor: getScoreColor(proposal.score),
 														}}
