@@ -79,7 +79,7 @@ export default function EvaluationResults({
 			</div>
 
 			<div className="p-6 space-y-8">
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+				<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 animate-fade-in">
 					<div
 						className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-l-4 hover:shadow-lg transition-shadow duration-300"
 						style={{ borderLeftColor: '#3b82f6' }}
