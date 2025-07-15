@@ -22,32 +22,6 @@ export default function ProposalEvaluation({
 
 	return (
 		<div className="p-6 space-y-6">
-			{/* Informació de l'empresa/proposta */}
-			<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-				<div className="flex items-start space-x-3">
-					{showCompanyInfo ? (
-						<Building className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
-					) : (
-						<FileText className="h-5 w-5 text-gray-600 mt-1 flex-shrink-0" />
-					)}
-					<div className="flex-1">
-						<h6 className="text-md font-semibold text-blue-900 mb-1">
-							{showCompanyInfo ? 'Empresa' : 'Document'}
-						</h6>
-						<p className="text-blue-800 font-medium">{displayName}</p>
-
-						{showCompanyInfo && (
-							<div className="flex items-center space-x-2 mt-2">
-								<Info className="h-4 w-4 text-blue-600" />
-								<span className="text-xs text-blue-700">
-									Empresa identificada automàticament
-								</span>
-							</div>
-						)}
-					</div>
-				</div>
-			</div>
-
 			{/* Resum */}
 			<div
 				className="rounded-lg p-4"

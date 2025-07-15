@@ -42,26 +42,6 @@ export default function LotEvaluationComponent({
 	);
 	const canCompare = proposalsWithEvaluations.length >= 2;
 
-	// Crear badge informatiu per empresa/document
-	const createCompanyBadge = (evaluation: LotEvaluation) => {
-		const showCompanyIcon = hasCompanyInfo(evaluation);
-		const displayName = getShortDisplayName(
-			evaluation.companyName,
-			evaluation.proposalName,
-		);
-
-		return (
-			<div className="flex items-center space-x-2">
-				{showCompanyIcon ? (
-					<Building className="h-4 w-4 text-slate-600" />
-				) : (
-					<FileText className="h-4 w-4 text-slate-600" />
-				)}
-				<span className="text-sm font-medium">{displayName}</span>
-			</div>
-		);
-	};
-
 	// Crear badge amb puntuacions per criteris
 	const createScoreBadge = (evaluation: LotEvaluation) => {
 		const criteriaCount = evaluation.criteria.length;
@@ -314,7 +294,6 @@ export default function LotEvaluationComponent({
 									badgeColor={badgeColor}
 									customBadge={
 										<div className="flex items-center space-x-3">
-											{createCompanyBadge(evaluation)}
 											{createScoreBadge(evaluation)}
 										</div>
 									}

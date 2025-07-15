@@ -148,7 +148,17 @@ export class PDFGeneratorService {
 			});
 		}
 
-		this.checkPageBreak(30);
+		// SOLUCIÓ SIMPLE: Calcular l'espai aproximat necessari
+		const recommendationSpaceNeeded = this.estimateTextHeight(
+			evaluation.recommendation,
+			this.contentWidth,
+		);
+
+		// Espai per títol (12) + espai després del títol (10) + text + espai final (10)
+		const totalSpaceNeeded = 12 + 10 + recommendationSpaceNeeded + 10;
+
+		this.checkPageBreak(totalSpaceNeeded);
+
 		this.doc.setFontSize(12);
 		this.doc.setTextColor(3, 105, 161);
 		this.doc.setFont('helvetica', 'bold');
@@ -167,6 +177,18 @@ export class PDFGeneratorService {
 		this.currentY += recommendationHeight + 10;
 	}
 
+	private estimateTextHeight(text: string, maxWidth: number): number {
+		// Estimació simple basada en la longitud del text i l'amplada disponible
+		const averageCharWidth = 3; // Aproximació per font de 10px
+		const charactersPerLine = Math.floor(maxWidth / averageCharWidth);
+		const estimatedLines = Math.ceil(text.length / charactersPerLine);
+
+		// Afegir un 20% extra per ser conservadors amb negrites i format
+		const safetyMargin = 1.2;
+
+		return Math.ceil(estimatedLines * 5 * safetyMargin); // 5 és el lineHeight
+	}
+
 	private addGeneralInfoForSingleEvaluation(
 		basicInfo: BasicInfo,
 		evaluation: LotEvaluation,
@@ -183,6 +205,8 @@ export class PDFGeneratorService {
 		);
 		const showCompanyInfo = hasCompanyInfo(evaluation);
 
+		const lotText = `Lot ${evaluation.lotNumber}: ${evaluation.lotTitle}`;
+
 		const infoItems = [
 			['Títol:', basicInfo.title],
 			['Expedient:', basicInfo.expedient],
@@ -192,53 +216,25 @@ export class PDFGeneratorService {
 				showCompanyInfo ? 'Empresa avaluada:' : 'Document avaluat:',
 				displayName,
 			],
+			['Lot:', lotText],
 			['Criteris avaluats:', evaluation.criteria.length.toString()],
+			[
+				'Identificació empresa:',
+				showCompanyInfo ? displayName : 'No identificada automàticament',
+			],
 		];
 
 		infoItems.forEach(([label, value]) => {
 			this.doc.setFont('helvetica', 'bold');
 			this.doc.text(label, this.margin, this.currentY);
 			this.doc.setFont('helvetica', 'normal');
+
+			// Usar addWrappedText per gestionar correctament els canvis de línia
 			const valueHeight = this.addWrappedText(
 				value,
 				this.margin + 80,
 				this.currentY,
 				this.contentWidth - 80,
-			);
-			this.currentY += Math.max(6, valueHeight + 1);
-		});
-
-		this.doc.setFont('helvetica', 'bold');
-		this.doc.text('Lot:', this.margin, this.currentY);
-		this.doc.setFont('helvetica', 'normal');
-
-		const lotHeight = this.addLotInfoWithLineBreak(
-			evaluation.lotNumber,
-			evaluation.lotTitle,
-			this.margin + 80,
-			this.currentY,
-			this.contentWidth - 80,
-		);
-		this.currentY += Math.max(6, lotHeight + 1);
-
-		if (showCompanyInfo) {
-			infoItems.push(['Identificació empresa:', displayName]);
-		} else {
-			infoItems.push([
-				'Identificació empresa:',
-				'No identificada automàticament',
-			]);
-		}
-
-		infoItems.forEach(([label, value]) => {
-			this.doc.setFont('helvetica', 'bold');
-			this.doc.text(label, this.margin, this.currentY);
-			this.doc.setFont('helvetica', 'normal');
-			const valueHeight = this.addWrappedText(
-				value,
-				this.margin + 80,
-				this.currentY,
-				this.contentWidth - 50,
 			);
 			this.currentY += Math.max(6, valueHeight + 1);
 		});
@@ -300,9 +296,9 @@ export class PDFGeneratorService {
 			this.doc.setFont('helvetica', 'normal');
 			const valueHeight = this.addWrappedText(
 				value,
-				this.margin + 50,
+				this.margin + 100,
 				this.currentY,
-				this.contentWidth - 50,
+				this.contentWidth - 100,
 			);
 			this.currentY += Math.max(6, valueHeight + 1);
 		});
@@ -314,9 +310,9 @@ export class PDFGeneratorService {
 		const lotHeight = this.addLotInfoWithLineBreak(
 			comparison.lotNumber,
 			comparison.lotTitle,
-			this.margin + 50,
+			this.margin + 100,
 			this.currentY,
-			this.contentWidth - 50,
+			this.contentWidth - 100,
 		);
 		this.currentY += Math.max(6, lotHeight + 1);
 	}
@@ -850,9 +846,8 @@ export class PDFGeneratorService {
 		);
 	}
 
-	// Mètodes auxiliars
 	private checkPageBreak(requiredSpace: number): void {
-		const footerSpace = 35;
+		const footerSpace = 60;
 		if (this.currentY + requiredSpace > this.pageHeight - footerSpace) {
 			this.addFooter();
 			this.doc.addPage();
