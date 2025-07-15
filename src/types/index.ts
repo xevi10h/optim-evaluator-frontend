@@ -86,16 +86,6 @@ export interface ProcessingState {
 	progress: number;
 }
 
-export interface EvaluationProgress {
-	currentProposal: string;
-	currentLot: number;
-	currentIndex: number;
-	totalProposals: number;
-	progress: number;
-	status: string;
-	completed?: boolean;
-}
-
 export interface BasicInfo {
 	title: string;
 	expedient: string;
@@ -126,7 +116,6 @@ export interface EvaluationRequest {
 	specifications: FileContent[];
 	proposals: FileContent[];
 	lots: LotInfo[];
-	sessionId?: string;
 }
 
 export interface LotExtractionRequest {
@@ -175,4 +164,3 @@ export const MIN_JUSTIFICATION_LENGTH = 100;
 export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
-export type ProgressCallback = (progress: EvaluationProgress) => void;

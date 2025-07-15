@@ -19,7 +19,6 @@ import type {
 	ProposalFile,
 	LotInfo,
 	ProposalComparison,
-	EvaluationProgress,
 	LotEvaluation,
 } from '@/types';
 
@@ -41,9 +40,6 @@ export default function OptimEvaluator() {
 	const [evaluationResult, setEvaluationResult] =
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [evaluationStatus, setEvaluationStatus] = useState<string>('');
-	const [evaluationProgress, setEvaluationProgress] =
-		useState<EvaluationProgress | null>(null);
 
 	useEffect(() => {
 		const extractLots = async () => {
@@ -55,7 +51,6 @@ export default function OptimEvaluator() {
 
 			try {
 				setIsLoadingLots(true);
-				setEvaluationStatus('Extraient informació dels lots...');
 
 				const specifications = specificationFiles.map((file) => ({
 					name: file.name,
@@ -72,12 +67,10 @@ export default function OptimEvaluator() {
 				}
 
 				setProposalFiles([]);
-				setEvaluationStatus('');
 			} catch (err) {
 				console.error('Error extracting lots:', err);
 				setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
 				setProposalFiles([]);
-				setEvaluationStatus('');
 			} finally {
 				setIsLoadingLots(false);
 			}
@@ -114,11 +107,8 @@ export default function OptimEvaluator() {
 		setIsEvaluating(true);
 		setError(null);
 		setEvaluationResult(null);
-		setEvaluationProgress(null);
 
 		try {
-			setEvaluationStatus('Connectant amb el servidor...');
-
 			const specifications = specificationFiles.map((file) => ({
 				name: file.name,
 				content: file.content,
@@ -132,30 +122,19 @@ export default function OptimEvaluator() {
 				lotNumber: file.lotNumber,
 			}));
 
-			setEvaluationStatus('Iniciant avaluació de propostes...');
-
 			const result = await apiService.evaluateProposalWithLots(
 				specifications,
 				proposals,
 				extractedLots,
-				(progress: EvaluationProgress) => {
-					console.log('Progress update received in component:', progress);
-					setEvaluationProgress(progress);
-					setEvaluationStatus(progress.status);
-				},
 			);
 
 			setEvaluationResult(result);
-			setEvaluationStatus('');
-			setEvaluationProgress(null);
 		} catch (err) {
 			setError(
 				`Error durant l'avaluació: ${
 					err instanceof Error ? err.message : 'Error desconegut'
 				}`,
 			);
-			setEvaluationStatus('');
-			setEvaluationProgress(null);
 		} finally {
 			setIsEvaluating(false);
 		}
@@ -198,10 +177,7 @@ export default function OptimEvaluator() {
 		>
 			<Header />
 
-			<EvaluationLoader
-				isVisible={isEvaluating}
-				progress={evaluationProgress}
-			/>
+			<EvaluationLoader isVisible={isEvaluating} />
 
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="space-y-6">
@@ -351,7 +327,6 @@ export default function OptimEvaluator() {
 							isEvaluating={isEvaluating}
 							isProcessing={isProcessing}
 							error={error}
-							evaluationStatus={evaluationStatus}
 							totalProposals={totalProposals}
 						/>
 

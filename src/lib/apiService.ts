@@ -89,18 +89,6 @@ export interface ComparisonResult {
 	timestamp: string;
 }
 
-export interface EvaluationProgress {
-	currentProposal: string;
-	currentLot: number;
-	currentIndex: number;
-	totalProposals: number;
-	progress: number;
-	status: string;
-	completed?: boolean;
-}
-
-export type ProgressCallback = (progress: EvaluationProgress) => void;
-
 class ApiService {
 	private async makeRequest<T>(
 		endpoint: string,
@@ -167,49 +155,12 @@ class ApiService {
 		});
 	}
 
-	private generateSessionId(): string {
-		return `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-	}
-
 	async evaluateProposalWithLots(
 		specifications: FileContent[],
 		proposals: FileContent[],
 		lots: LotInfo[],
-		onProgress?: ProgressCallback,
 	): Promise<EvaluationResult> {
-		const sessionId = this.generateSessionId();
-
-		if (onProgress) {
-			const eventSource = new EventSource(
-				`${API_BASE_URL}/evaluate-lots/progress/${sessionId}`,
-			);
-
-			eventSource.onmessage = (event) => {
-				try {
-					const progress = JSON.parse(event.data);
-					console.log('Progress received:', progress);
-					onProgress(progress);
-
-					if (progress.completed) {
-						console.log('Evaluation completed, closing EventSource');
-						eventSource.close();
-					}
-				} catch (error) {
-					console.error('Error parsing progress data:', error);
-				}
-			};
-
-			eventSource.onerror = (error) => {
-				console.error('SSE error:', error);
-				eventSource.close();
-			};
-
-			eventSource.onopen = () => {
-				console.log('SSE connection opened for session:', sessionId);
-			};
-		}
-
-		console.log('Starting evaluation with sessionId:', sessionId);
+		console.log('Starting evaluation...');
 
 		return this.makeRequest<EvaluationResult>('/evaluate-lots', {
 			method: 'POST',
@@ -217,7 +168,6 @@ class ApiService {
 				specifications,
 				proposals,
 				lots,
-				sessionId,
 			}),
 		});
 	}
@@ -304,15 +254,9 @@ export function useApiService() {
 		specifications: FileContent[],
 		proposals: FileContent[],
 		lots: LotInfo[],
-		onProgress?: ProgressCallback,
 	) =>
 		executeRequest(() =>
-			apiService.evaluateProposalWithLots(
-				specifications,
-				proposals,
-				lots,
-				onProgress,
-			),
+			apiService.evaluateProposalWithLots(specifications, proposals, lots),
 		);
 
 	const compareProposals = (
