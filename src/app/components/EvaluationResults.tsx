@@ -9,8 +9,10 @@ import {
 	Users,
 	Target,
 	TrendingUp,
+	Building,
 } from 'lucide-react';
 import LotEvaluationComponent from './LotEvaluation';
+import { getDisplayName, hasCompanyInfo } from '@/types';
 import type {
 	EvaluationResult,
 	FileContent,
@@ -58,6 +60,10 @@ export default function EvaluationResults({
 	const averageConfidence = Math.round(
 		evaluationResult.overallConfidence * 100,
 	);
+
+	const companiesIdentified = evaluationResult.lots.filter(
+		(lot) => lot.hasProposal && hasCompanyInfo(lot),
+	).length;
 
 	return (
 		<div
@@ -126,16 +132,14 @@ export default function EvaluationResults({
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-purple-700">
-									Criteris Analitzats
+									Empreses Identificades
 								</p>
 								<p className="text-2xl font-bold text-purple-900">
-									{totalProposals > 0
-										? Math.round(totalCriteria / totalProposals)
-										: 0}
+									{companiesIdentified}/{totalProposals}
 								</p>
 							</div>
 							<div className="p-3 bg-purple-200 rounded-full">
-								<Target className="h-6 w-6 text-purple-700" />
+								<Building className="h-6 w-6 text-purple-700" />
 							</div>
 						</div>
 					</div>
@@ -275,28 +279,43 @@ export default function EvaluationResults({
 
 									<div className="flex flex-wrap justify-center gap-3">
 										{proposalsWithEvaluations.map(
-											(evaluation: LotEvaluation) => (
-												<button
-													key={`${evaluation.lotNumber}-${evaluation.proposalName}`}
-													onClick={() => onDownloadPDF(evaluation)}
-													className="px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-lg shadow-md"
-													style={{
-														background:
-															'linear-gradient(135deg, #199875 0%, #188869 100%)',
-													}}
-													onMouseEnter={(e) => {
-														e.currentTarget.style.background =
-															'linear-gradient(135deg, #188869 0%, #177759 100%)';
-													}}
-													onMouseLeave={(e) => {
-														e.currentTarget.style.background =
-															'linear-gradient(135deg, #199875 0%, #188869 100%)';
-													}}
-												>
-													<Download className="h-4 w-4" />
-													<span>{evaluation.proposalName}</span>
-												</button>
-											),
+											(evaluation: LotEvaluation) => {
+												const displayName = getDisplayName(
+													evaluation.companyName,
+													evaluation.proposalName,
+												);
+												const showCompanyIcon = hasCompanyInfo(evaluation);
+
+												return (
+													<button
+														key={`${evaluation.lotNumber}-${evaluation.proposalName}`}
+														onClick={() => onDownloadPDF(evaluation)}
+														className="px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-lg shadow-md"
+														style={{
+															background:
+																'linear-gradient(135deg, #199875 0%, #188869 100%)',
+														}}
+														onMouseEnter={(e) => {
+															e.currentTarget.style.background =
+																'linear-gradient(135deg, #188869 0%, #177759 100%)';
+														}}
+														onMouseLeave={(e) => {
+															e.currentTarget.style.background =
+																'linear-gradient(135deg, #199875 0%, #188869 100%)';
+														}}
+													>
+														{showCompanyIcon ? (
+															<Building className="h-4 w-4" />
+														) : (
+															<FileText className="h-4 w-4" />
+														)}
+														<Download className="h-4 w-4" />
+														<span className="max-w-40 truncate">
+															{displayName}
+														</span>
+													</button>
+												);
+											},
 										)}
 									</div>
 								</div>

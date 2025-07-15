@@ -20,6 +20,7 @@ import type {
 	LotInfo,
 	ProposalComparison,
 	LotEvaluation,
+	FileContent,
 } from '@/types';
 
 export default function OptimEvaluator() {
@@ -52,11 +53,13 @@ export default function OptimEvaluator() {
 			try {
 				setIsLoadingLots(true);
 
-				const specifications = specificationFiles.map((file) => ({
-					name: file.name,
-					content: file.content,
-					type: 'specification' as const,
-				}));
+				const specifications: FileContent[] = specificationFiles.map(
+					(file) => ({
+						name: file.name,
+						content: file.content,
+						type: 'specification' as const,
+					}),
+				);
 
 				const lots = await apiService.extractLots(specifications);
 
@@ -109,26 +112,40 @@ export default function OptimEvaluator() {
 		setEvaluationResult(null);
 
 		try {
-			const specifications = specificationFiles.map((file) => ({
+			const specifications: FileContent[] = specificationFiles.map((file) => ({
 				name: file.name,
 				content: file.content,
 				type: 'specification' as const,
 			}));
 
-			const proposals = proposalFiles.map((file) => ({
+			const proposals: FileContent[] = proposalFiles.map((file) => ({
 				name: file.name,
 				content: file.content,
 				type: 'proposal' as const,
 				lotNumber: file.lotNumber,
 			}));
 
-			const result = await apiService.evaluateProposalWithLots(
+			// IMPORTANT: Convertir l'EvaluationResult de l'API al tipus del frontend
+			const apiResult = await apiService.evaluateProposalWithLots(
 				specifications,
 				proposals,
 				extractedLots,
 			);
 
-			setEvaluationResult(result);
+			// Convertir els tipus de l'API als tipus del frontend
+			const frontendResult: EvaluationResult = {
+				...apiResult,
+				lots: apiResult.lots.map(
+					(lot): LotEvaluation => ({
+						...lot,
+						// Assegurar que sempre tenim aquests camps, fins i tot si l'API no els retorna
+						companyName: lot.companyName || null,
+						companyConfidence: lot.companyConfidence || 0,
+					}),
+				),
+			};
+
+			setEvaluationResult(frontendResult);
 		} catch (err) {
 			setError(
 				`Error durant l'avaluació: ${
@@ -162,7 +179,7 @@ export default function OptimEvaluator() {
 	const isProcessing = isLoadingLots;
 	const totalProposals = getTotalProposals();
 
-	const specifications = specificationFiles.map((file) => ({
+	const specifications: FileContent[] = specificationFiles.map((file) => ({
 		name: file.name,
 		content: file.content,
 		type: 'specification' as const,

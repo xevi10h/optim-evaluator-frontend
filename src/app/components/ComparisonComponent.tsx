@@ -11,7 +11,10 @@ import {
 	Star,
 	Award,
 	TrendingUp,
+	Building,
+	FileText,
 } from 'lucide-react';
+import { getDisplayName, getShortDisplayName, hasCompanyInfo } from '@/types';
 import type {
 	ProposalComparison,
 	LotEvaluation,
@@ -48,6 +51,7 @@ export default function ComparisonComponent({
 				specificationsCount: specifications.length,
 				evaluatedProposals: evaluatedProposals.map((p) => ({
 					name: p.proposalName,
+					company: p.companyName,
 					lotNumber: p.lotNumber,
 					hasProposal: p.hasProposal,
 					criteriaCount: p.criteria.length,
@@ -137,7 +141,7 @@ export default function ComparisonComponent({
 					<div className="flex items-center justify-center space-x-3 mb-6">
 						<div>
 							<h4 className="text-xl font-bold text-blue-900 mb-2">
-								Comparació entre Propostes
+								Comparació entre Empreses
 							</h4>
 							<p className="text-blue-700">
 								Compara {evaluatedProposals.length} propostes per aquest lot amb
@@ -155,7 +159,7 @@ export default function ComparisonComponent({
 								Rànking Global
 							</p>
 							<p className="text-xs text-blue-700">
-								Posicionament de cada proposta
+								Posicionament de cada empresa
 							</p>
 						</div>
 						<div className="bg-white rounded-lg p-4 border border-blue-200">
@@ -214,7 +218,7 @@ export default function ComparisonComponent({
 						Comparant Propostes...
 					</h4>
 					<p className="text-green-700 mb-4">
-						Analitzant les diferències i similituds entre les propostes
+						Analitzant les diferències i similituds entre les empreses
 					</p>
 					<div className="flex items-center justify-center space-x-2 text-sm text-green-600">
 						<div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
@@ -241,8 +245,8 @@ export default function ComparisonComponent({
 						No hi ha dades per comparar
 					</h4>
 					<p className="text-gray-600">
-						Assegureu-vos que les propostes estan avaluades i els fitxers de
-						especificacions estan carregats.
+						Assegureu-vos que les propostes estan avaluades i els fitxers
+						d'especificacions estan carregats.
 					</p>
 				</div>
 			</div>
@@ -251,15 +255,15 @@ export default function ComparisonComponent({
 
 	return (
 		<div className="p-6 space-y-8">
-			{/* Header mejorado */}
+			{/* Header millorat */}
 			<div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-6 text-white">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center space-x-4">
 						<div className="p-3 bg-white bg-opacity-20 rounded-full">
-							<GitCompare className="h-8 w-8" color="blue" />
+							<GitCompare className="h-8 w-8" />
 						</div>
 						<div>
-							<h3 className="text-2xl font-bold">Comparació de Propostes</h3>
+							<h3 className="text-2xl font-bold">Comparació d'Empreses</h3>
 							<p className="text-blue-100">
 								Lot {lotInfo.lotNumber}: {lotInfo.title}
 							</p>
@@ -267,7 +271,7 @@ export default function ComparisonComponent({
 					</div>
 					<div className="text-right">
 						<p className="text-sm opacity-90">
-							{comparison.proposalNames.length} propostes analitzades
+							{comparison.proposalNames.length} empreses analitzades
 						</p>
 						<p className="text-lg font-semibold">
 							Confiança: {Math.round(comparison.confidence * 100)}%
@@ -276,7 +280,7 @@ export default function ComparisonComponent({
 				</div>
 			</div>
 
-			{/* Summary mejorado */}
+			{/* Resum millorat */}
 			<div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
 				<h4 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
 					<div className="p-2 bg-slate-200 rounded-lg mr-3">
@@ -289,106 +293,101 @@ export default function ComparisonComponent({
 				</div>
 			</div>
 
-			{/* Global Ranking mejorado */}
+			{/* Rànking Global millorat */}
 			<div>
 				<h4 className="text-xl font-bold text-slate-900 mb-6 flex items-center">
 					<div className="p-2 bg-yellow-100 rounded-lg mr-3">
 						<Trophy className="h-6 w-6 text-yellow-600" />
 					</div>
-					Rànking Global
+					Rànking Global d'Empreses
 				</h4>
 				<div className="space-y-6">
-					{comparison.globalRanking.map((ranking, index) => (
-						<div
-							key={ranking.proposalName}
-							className={`rounded-xl p-6 border-2 transition-all duration-300 hover:shadow-lg ${
-								index === 0
-									? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
-									: 'border-slate-200 bg-white hover:border-slate-300'
-							}`}
-						>
-							<div className="flex items-start justify-between mb-6">
-								<div className="flex items-center space-x-4">
-									<div
-										className={`text-4xl ${
-											index === 0 ? 'animate-bounce' : ''
-										}`}
-									>
-										{getPositionIcon(ranking.position)}
-									</div>
-									<div>
-										<h5 className="text-xl font-bold text-slate-900">
-											{ranking.proposalName}
-										</h5>
-										<span
-											className="inline-block px-4 py-2 rounded-full text-sm font-semibold text-white mt-2"
-											style={{
-												backgroundColor: getOverallScoreColor(
-													ranking.overallScore,
-												),
-											}}
+					{comparison.globalRanking.map((ranking, index) => {
+						const displayName = getDisplayName(
+							ranking.companyName,
+							ranking.proposalName,
+						);
+						const showCompanyIcon = ranking.companyName !== null;
+
+						return (
+							<div
+								key={ranking.proposalName}
+								className={`rounded-xl p-6 border-2 transition-all duration-300 hover:shadow-lg ${
+									index === 0
+										? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
+										: 'border-slate-200 bg-white hover:border-slate-300'
+								}`}
+							>
+								<div className="flex items-start justify-between mb-6">
+									<div className="flex items-center space-x-4">
+										<div
+											className={`text-4xl ${
+												index === 0 ? 'animate-bounce' : ''
+											}`}
 										>
-											{ranking.overallScore}
-										</span>
+											{getPositionIcon(ranking.position)}
+										</div>
+										<div className="flex items-center space-x-3">
+											{showCompanyIcon ? (
+												<Building className="h-6 w-6 text-slate-600" />
+											) : (
+												<FileText className="h-6 w-6 text-slate-600" />
+											)}
+											<div>
+												<h5 className="text-xl font-bold text-slate-900">
+													{displayName}
+												</h5>
+												<span
+													className="inline-block px-4 py-2 rounded-full text-sm font-semibold text-white mt-2"
+													style={{
+														backgroundColor: getOverallScoreColor(
+															ranking.overallScore,
+														),
+													}}
+												>
+													{ranking.overallScore}
+												</span>
+											</div>
+										</div>
 									</div>
 								</div>
-							</div>
 
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-								{ranking.strengths.length > 0 && (
-									<div className="bg-green-50 rounded-lg p-4 border border-green-200">
-										<h6 className="font-bold text-green-800 mb-3 flex items-center">
-											<Star className="h-4 w-4 mr-2" />
-											Punts Forts Principals
-										</h6>
-										<ul className="space-y-2">
-											{ranking.strengths.map((strength, i) => (
-												<li
-													key={i}
-													className="text-sm text-green-700 flex items-start"
-												>
-													<span className="text-green-500 mr-2 mt-1">•</span>
-													<span>{strength}</span>
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
+								<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+									{ranking.strengths.length > 0 && (
+										<div className="bg-green-50 rounded-lg p-4 border border-green-200">
+											<h6 className="font-bold text-red-800 mb-3">
+												Punts Febles Principals
+											</h6>
+											<ul className="space-y-2">
+												{ranking.weaknesses.map((weakness, i) => (
+													<li
+														key={i}
+														className="text-sm text-red-700 flex items-start"
+													>
+														<span className="text-red-500 mr-2 mt-1">•</span>
+														<span>{weakness}</span>
+													</li>
+												))}
+											</ul>
+										</div>
+									)}
+								</div>
 
-								{ranking.weaknesses.length > 0 && (
-									<div className="bg-red-50 rounded-lg p-4 border border-red-200">
-										<h6 className="font-bold text-red-800 mb-3">
-											Punts Febles Principals
-										</h6>
-										<ul className="space-y-2">
-											{ranking.weaknesses.map((weakness, i) => (
-												<li
-													key={i}
-													className="text-sm text-red-700 flex items-start"
-												>
-													<span className="text-red-500 mr-2 mt-1">•</span>
-													<span>{weakness}</span>
-												</li>
-											))}
-										</ul>
-									</div>
-								)}
+								<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+									<h6 className="font-bold text-blue-800 mb-2">
+										Recomanació Específica
+									</h6>
+									<p className="text-sm text-blue-700">
+										{ranking.recommendation}
+									</p>
+								</div>
 							</div>
-
-							<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-								<h6 className="font-bold text-blue-800 mb-2">
-									Recomanació Específica
-								</h6>
-								<p className="text-sm text-blue-700">
-									{ranking.recommendation}
-								</p>
-							</div>
-						</div>
-					))}
+						);
+					})}
 				</div>
 			</div>
 
-			{/* Criteria Comparison Table mejorado */}
+			{/* Taula de Comparació de Criteris millorada */}
 			<div>
 				<h4 className="text-xl font-bold text-slate-900 mb-6 flex items-center">
 					<div className="p-2 bg-purple-100 rounded-lg mr-3">
@@ -405,14 +404,25 @@ export default function ComparisonComponent({
 									<th className="px-6 py-4 text-left font-bold text-slate-900 border-b border-slate-300">
 										Criteri
 									</th>
-									{comparison.proposalNames.map((name) => (
-										<th
-											key={name}
-											className="px-6 py-4 text-center font-bold text-slate-900 border-b border-slate-300"
-										>
-											{name}
-										</th>
-									))}
+									{comparison.proposalNames.map((name, index) => {
+										const companyName = comparison.companyNames[index];
+										const displayName = getShortDisplayName(companyName, name);
+										return (
+											<th
+												key={name}
+												className="px-6 py-4 text-center font-bold text-slate-900 border-b border-slate-300"
+											>
+												<div className="flex flex-col items-center space-y-1">
+													{companyName ? (
+														<Building className="h-4 w-4 text-slate-600" />
+													) : (
+														<FileText className="h-4 w-4 text-slate-600" />
+													)}
+													<span className="text-sm">{displayName}</span>
+												</div>
+											</th>
+										);
+									})}
 								</tr>
 							</thead>
 							<tbody>
@@ -454,7 +464,7 @@ export default function ComparisonComponent({
 				</div>
 			</div>
 
-			{/* Detailed Criteria Analysis mejorado */}
+			{/* Anàlisi Detallada per Criteris millorada */}
 			<div>
 				<h4 className="text-xl font-bold text-slate-900 mb-6">
 					Anàlisi Detallada per Criteris
@@ -473,46 +483,63 @@ export default function ComparisonComponent({
 
 							<div className="p-6">
 								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-									{criterionComp.proposals.map((proposal) => (
-										<div
-											key={proposal.proposalName}
-											className={`rounded-lg p-4 border-2 transition-all duration-300 hover:shadow-md ${
-												proposal.position === 1
-													? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
-													: 'border-slate-200 bg-slate-50 hover:border-slate-300'
-											}`}
-										>
-											<div className="flex items-center justify-between mb-4">
-												<h6 className="font-bold text-slate-900 flex">
-													{proposal.proposalName}
-												</h6>
-												<div className="flex flex-col items-center gap-2 max-w-[30%] justify-center">
-													<span className="text-sm">
-														{getPositionIcon(proposal.position)}
-													</span>
-													<span
-														className="flex whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold text-white justify-center items-center"
-														style={{
-															backgroundColor: getScoreColor(proposal.score),
-														}}
-													>
-														{getScoreText(proposal.score)}
-													</span>
+									{criterionComp.proposals.map((proposal) => {
+										const displayName = getDisplayName(
+											proposal.companyName,
+											proposal.proposalName,
+										);
+										const showCompanyIcon = proposal.companyName !== null;
+
+										return (
+											<div
+												key={proposal.proposalName}
+												className={`rounded-lg p-4 border-2 transition-all duration-300 hover:shadow-md ${
+													proposal.position === 1
+														? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50'
+														: 'border-slate-200 bg-slate-50 hover:border-slate-300'
+												}`}
+											>
+												<div className="flex items-start justify-between mb-4">
+													<div className="flex items-center space-x-2 flex-1">
+														{showCompanyIcon ? (
+															<Building className="h-4 w-4 text-slate-600 flex-shrink-0" />
+														) : (
+															<FileText className="h-4 w-4 text-slate-600 flex-shrink-0" />
+														)}
+														<h6 className="font-bold text-slate-900 text-sm">
+															{displayName}
+														</h6>
+													</div>
+													<div className="flex flex-col items-center gap-2 max-w-[30%] justify-center">
+														<span className="text-sm">
+															{getPositionIcon(proposal.position)}
+														</span>
+														<span
+															className="flex whitespace-nowrap px-2 py-1 rounded-full text-xs font-semibold text-white justify-center items-center"
+															style={{
+																backgroundColor: getScoreColor(proposal.score),
+															}}
+														>
+															{getScoreText(proposal.score)}
+														</span>
+													</div>
+												</div>
+
+												<div className="space-y-3">
+													{proposal.arguments.map((argument, i) => (
+														<div
+															key={i}
+															className="text-sm p-3 rounded-lg bg-white border border-slate-200"
+														>
+															<span className="text-slate-600">
+																• {argument}
+															</span>
+														</div>
+													))}
 												</div>
 											</div>
-
-											<div className="space-y-3">
-												{proposal.arguments.map((argument, i) => (
-													<div
-														key={i}
-														className="text-sm p-3 rounded-lg bg-white border border-slate-200"
-													>
-														<span className="text-slate-600">• {argument}</span>
-													</div>
-												))}
-											</div>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							</div>
 						</div>
@@ -520,7 +547,7 @@ export default function ComparisonComponent({
 				</div>
 			</div>
 
-			{/* Download Button mejorado - con mejor espaciado */}
+			{/* Botó de descàrrega millorat */}
 			<div className="pt-8 pb-4">
 				<div className="flex justify-center">
 					<button

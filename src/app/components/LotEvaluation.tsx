@@ -9,10 +9,12 @@ import {
 	CheckCircle,
 	AlertCircle,
 	XCircle,
+	Building,
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import ProposalEvaluation from './ProposalEvaluation';
 import ComparisonComponent from './ComparisonComponent';
+import { getDisplayName, getShortDisplayName, hasCompanyInfo } from '@/types';
 import type {
 	LotInfo,
 	LotEvaluation,
@@ -114,7 +116,7 @@ export default function LotEvaluationComponent({
 				</div>
 			)}
 
-			{/* Individual Proposal Evaluations */}
+			{/* Avaluacions individuals de propostes */}
 			{proposalsWithEvaluations.length === 1 ? (
 				<div className="animate-fade-in">
 					<ProposalEvaluation
@@ -146,7 +148,13 @@ export default function LotEvaluationComponent({
 								? '#f59e0b'
 								: '#dc2626';
 
-						// Crear badge con mejor separación e iconos
+						const displayName = getShortDisplayName(
+							evaluation.companyName,
+							evaluation.proposalName,
+						);
+						const showCompanyIcon = hasCompanyInfo(evaluation);
+
+						// Crear badge amb millor separació i icones
 						const createScoreBadge = () => {
 							const items = [];
 
@@ -205,15 +213,22 @@ export default function LotEvaluationComponent({
 								}}
 							>
 								<CollapsibleSection
-									title={evaluation.proposalName}
+									title={displayName}
 									subtitle={`Confiança: ${Math.round(
 										evaluation.confidence * 100,
 									)}% | ${criteriaCount} criteris avaluats`}
 									icon={
-										<FileText
-											className="h-5 w-5"
-											style={{ color: '#199875' }}
-										/>
+										showCompanyIcon ? (
+											<Building
+												className="h-5 w-5"
+												style={{ color: '#199875' }}
+											/>
+										) : (
+											<FileText
+												className="h-5 w-5"
+												style={{ color: '#199875' }}
+											/>
+										)
 									}
 									isOpenByDefault={false}
 									badgeText=""
@@ -233,14 +248,14 @@ export default function LotEvaluationComponent({
 				</div>
 			)}
 
-			{/* Comparison Section */}
+			{/* Secció de comparació */}
 			{canCompare && (
 				<div
 					className="animate-fade-in"
 					style={{ animationDelay: '300ms', animationFillMode: 'both' }}
 				>
 					<CollapsibleSection
-						title="Comparació entre Propostes"
+						title="Comparació entre Empreses"
 						subtitle={`Anàlisi comparatiu detallat entre ${proposalsWithEvaluations.length} propostes`}
 						icon={<Users className="h-5 w-5" style={{ color: '#199875' }} />}
 						isOpenByDefault={false}

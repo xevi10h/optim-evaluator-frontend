@@ -33,10 +33,13 @@ export interface UploadResponse {
 	};
 }
 
+// ACTUALITZAT: Amb informació d'empresa
 export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
 	proposalName: string;
+	companyName: string | null; // NOU CAMP
+	companyConfidence: number; // NOU CAMP
 	hasProposal: boolean;
 	criteria: Array<{
 		criterion: string;
@@ -63,10 +66,12 @@ export interface ProposalComparison {
 	lotNumber: number;
 	lotTitle: string;
 	proposalNames: string[];
+	companyNames: (string | null)[]; // NOU CAMP
 	criteriaComparisons: Array<{
 		criterion: string;
 		proposals: Array<{
 			proposalName: string;
+			companyName: string | null; // NOU CAMP
 			score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 			arguments: string[];
 			position: number;
@@ -74,6 +79,7 @@ export interface ProposalComparison {
 	}>;
 	globalRanking: Array<{
 		proposalName: string;
+		companyName: string | null; // NOU CAMP
 		position: number;
 		overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
 		strengths: string[];
@@ -183,6 +189,7 @@ class ApiService {
 			evaluatedProposalsCount: evaluatedProposals.length,
 			evaluatedProposals: evaluatedProposals.map((p) => ({
 				name: p.proposalName,
+				company: p.companyName,
 				lotNumber: p.lotNumber,
 				hasProposal: p.hasProposal,
 				criteriaCount: p.criteria.length,

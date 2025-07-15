@@ -1,8 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Package, FileText } from 'lucide-react';
+import { Package, FileText, Building, Info } from 'lucide-react';
 import type { LotEvaluation } from '@/types';
+import {
+	getDisplayName,
+	hasCompanyInfo,
+	getCompanyConfidenceText,
+} from '@/types';
 
 interface ProposalEvaluationProps {
 	evaluation: LotEvaluation;
@@ -13,9 +18,50 @@ export default function ProposalEvaluation({
 	evaluation,
 	showLotNumber = false,
 }: ProposalEvaluationProps) {
+	const displayName = getDisplayName(
+		evaluation.companyName,
+		evaluation.proposalName,
+	);
+	const showCompanyInfo = hasCompanyInfo(evaluation);
+	const confidenceText = getCompanyConfidenceText(evaluation.companyConfidence);
+
 	return (
 		<div className="p-6 space-y-6">
-			{/* Summary */}
+			{/* Informació de l'empresa/proposta */}
+			<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+				<div className="flex items-start space-x-3">
+					{showCompanyInfo ? (
+						<Building className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+					) : (
+						<FileText className="h-5 w-5 text-gray-600 mt-1 flex-shrink-0" />
+					)}
+					<div className="flex-1">
+						<h6 className="text-md font-semibold text-blue-900 mb-1">
+							{showCompanyInfo ? 'Empresa' : 'Document'}
+						</h6>
+						<p className="text-blue-800 font-medium">{displayName}</p>
+
+						{showCompanyInfo && (
+							<div className="flex items-center space-x-2 mt-2">
+								<Info className="h-4 w-4 text-blue-600" />
+								<span className="text-xs text-blue-700">
+									Confiança d'identificació: {confidenceText} (
+									{Math.round(evaluation.companyConfidence * 100)}%)
+								</span>
+							</div>
+						)}
+
+						{!showCompanyInfo && (
+							<p className="text-xs text-gray-600 mt-1">
+								No s'ha pogut identificar automàticament el nom de l'empresa en
+								aquesta proposta
+							</p>
+						)}
+					</div>
+				</div>
+			</div>
+
+			{/* Resum */}
 			<div
 				className="rounded-lg p-4"
 				style={{
@@ -31,7 +77,7 @@ export default function ProposalEvaluation({
 				</p>
 			</div>
 
-			{/* Criteria Evaluation */}
+			{/* Avaluació per criteris */}
 			<div className="space-y-6">
 				<h6
 					className="text-lg font-semibold flex items-center"
@@ -156,7 +202,7 @@ export default function ProposalEvaluation({
 				))}
 			</div>
 
-			{/* Recommendation */}
+			{/* Recomanació */}
 			<div
 				className="rounded-lg p-4 animate-fade-in"
 				style={{

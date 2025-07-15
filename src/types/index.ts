@@ -30,6 +30,8 @@ export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
 	proposalName: string;
+	companyName: string | null;
+	companyConfidence: number;
 	hasProposal: boolean;
 	criteria: EvaluationCriteria[];
 	summary: string;
@@ -49,6 +51,7 @@ export interface CriterionComparison {
 	criterion: string;
 	proposals: Array<{
 		proposalName: string;
+		companyName: string | null; // NOU CAMP
 		score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 		arguments: string[];
 		position: number;
@@ -57,6 +60,7 @@ export interface CriterionComparison {
 
 export interface ComparisonRanking {
 	proposalName: string;
+	companyName: string | null; // NOU CAMP
 	position: number;
 	overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
 	strengths: string[];
@@ -68,6 +72,7 @@ export interface ProposalComparison {
 	lotNumber: number;
 	lotTitle: string;
 	proposalNames: string[];
+	companyNames: (string | null)[]; // NOU CAMP
 	criteriaComparisons: CriterionComparison[];
 	globalRanking: ComparisonRanking[];
 	summary: string;
@@ -164,3 +169,46 @@ export const MIN_JUSTIFICATION_LENGTH = 100;
 export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
+
+export function getDisplayName(
+	companyName: string | null,
+	proposalName: string,
+): string {
+	if (companyName) {
+		return companyName;
+	}
+
+	return `${proposalName} (empresa no identificada)`;
+}
+
+export function getShortDisplayName(
+	companyName: string | null,
+	proposalName: string,
+): string {
+	if (companyName) {
+		// Si el nom de l'empresa és molt llarg, el retallem
+		return companyName.length > 30
+			? `${companyName.substring(0, 27)}...`
+			: companyName;
+	}
+
+	// Si no tenim empresa, mostrem el nom del document de forma abreujada
+	const shortName =
+		proposalName.length > 20
+			? `${proposalName.substring(0, 17)}...`
+			: proposalName;
+	return `${shortName} (no identificada)`;
+}
+
+export function hasCompanyInfo(evaluation: LotEvaluation): boolean {
+	return (
+		evaluation.companyName !== null && evaluation.companyName.trim().length > 0
+	);
+}
+
+export function getCompanyConfidenceText(confidence: number): string {
+	if (confidence >= 0.8) return 'Alta confiança';
+	if (confidence >= 0.6) return 'Confiança mitjana';
+	if (confidence >= 0.4) return 'Baixa confiança';
+	return 'Molt baixa confiança';
+}
