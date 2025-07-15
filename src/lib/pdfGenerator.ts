@@ -53,6 +53,8 @@ export class PDFGeneratorService {
 			}
 		}
 
+		// Assegurar que hi ha espai suficient per al footer
+		this.checkPageBreak(50);
 		this.addFooter();
 
 		const fileName = specificEvaluation
@@ -79,6 +81,8 @@ export class PDFGeneratorService {
 		this.addCriteriaComparisonTable(comparison);
 		this.addDetailedCriteriaAnalysis(comparison);
 
+		// Assegurar que hi ha espai suficient per al footer
+		this.checkPageBreak(50);
 		this.addFooter();
 
 		const fileName = `comparacio_lot_${comparison.lotNumber}_${
@@ -159,14 +163,22 @@ export class PDFGeneratorService {
 		text: string,
 	): Array<{ text: string; isBold: boolean }> {
 		const parts: Array<{ text: string; isBold: boolean }> = [];
+
+		// Netejar el text d'asteriscs solitaris i mal formats
+		let cleanText = text
+			.replace(/\*\s+/g, '') // Eliminar asteriscs seguits d'espai
+			.replace(/\s+\*/g, '') // Eliminar asteriscs precedits d'espai
+			.replace(/\*{1}([^*]+)\*{1}/g, '$1') // Convertir *text* simple en text normal
+			.replace(/\*{3,}/g, ''); // Eliminar múltiples asteriscs
+
 		const regex = /\*\*(.*?)\*\*/g;
 		let lastIndex = 0;
 		let match;
 
-		while ((match = regex.exec(text)) !== null) {
+		while ((match = regex.exec(cleanText)) !== null) {
 			// Add text before the bold part
 			if (match.index > lastIndex) {
-				const beforeText = text.substring(lastIndex, match.index);
+				const beforeText = cleanText.substring(lastIndex, match.index);
 				if (beforeText.trim()) {
 					parts.push({ text: beforeText, isBold: false });
 				}
@@ -178,8 +190,8 @@ export class PDFGeneratorService {
 		}
 
 		// Add remaining text
-		if (lastIndex < text.length) {
-			const remainingText = text.substring(lastIndex);
+		if (lastIndex < cleanText.length) {
+			const remainingText = cleanText.substring(lastIndex);
 			if (remainingText.trim()) {
 				parts.push({ text: remainingText, isBold: false });
 			}
@@ -187,7 +199,7 @@ export class PDFGeneratorService {
 
 		// If no bold formatting found, return the entire text as normal
 		if (parts.length === 0) {
-			parts.push({ text: text, isBold: false });
+			parts.push({ text: cleanText, isBold: false });
 		}
 
 		return parts;
@@ -249,7 +261,9 @@ export class PDFGeneratorService {
 	}
 
 	private checkPageBreak(requiredSpace: number): void {
-		if (this.currentY + requiredSpace > this.pageHeight - 50) {
+		// Incrementar l'espai necessari per assegurar-se que no hi ha solapament
+		const footerSpace = 60; // Espai per al footer
+		if (this.currentY + requiredSpace > this.pageHeight - footerSpace) {
 			this.addFooter();
 			this.doc.addPage();
 			this.addSmallHeader();
@@ -942,17 +956,32 @@ export class PDFGeneratorService {
 		if (criterion.references.length > 0) {
 			this.checkPageBreak(20);
 
-			this.doc.setFontSize(9);
-			this.doc.setTextColor(100, 100, 100);
-			this.doc.setFont('helvetica', 'italic');
-			const referencesText = 'Referències: ' + criterion.references.join(', ');
-			const referencesHeight = this.addWrappedText(
-				referencesText,
-				this.margin,
-				this.currentY,
-				this.contentWidth,
-			);
-			this.currentY += referencesHeight;
+			// Filtrar referències que no són errors o missatges del sistema
+			const validReferences = criterion.references.filter((ref: string) => {
+				const cleanRef = ref.toLowerCase().trim();
+				return (
+					!cleanRef.includes('error') &&
+					!cleanRef.includes('revisió manual') &&
+					!cleanRef.includes('processament automàtic') &&
+					cleanRef.length > 10 &&
+					cleanRef.length < 200
+				); // Evitar referències massa llargues
+			});
+
+			if (validReferences.length > 0) {
+				this.doc.setFontSize(9);
+				this.doc.setTextColor(100, 100, 100);
+				this.doc.setFont('helvetica', 'italic');
+
+				const referencesText = 'Referències: ' + validReferences.join(', ');
+				const referencesHeight = this.addWrappedText(
+					referencesText,
+					this.margin,
+					this.currentY,
+					this.contentWidth,
+				);
+				this.currentY += referencesHeight;
+			}
 		}
 
 		this.checkPageBreak(15);
