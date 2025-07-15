@@ -54,8 +54,6 @@ export class PDFGeneratorService {
 			}
 		}
 
-		// Assegurar que hi ha espai suficient per al footer
-		this.checkPageBreak(50);
 		this.addFooter();
 
 		const fileName = specificEvaluation
@@ -80,8 +78,6 @@ export class PDFGeneratorService {
 		this.addCriteriaComparisonTable(comparison);
 		this.addDetailedCriteriaAnalysis(comparison);
 
-		// Assegurar que hi ha espai suficient per al footer
-		this.checkPageBreak(50);
 		this.addFooter();
 
 		const fileName = `comparacio_lot_${comparison.lotNumber}_${
@@ -741,7 +737,7 @@ export class PDFGeneratorService {
 
 	// Mètodes auxiliars
 	private checkPageBreak(requiredSpace: number): void {
-		const footerSpace = 100;
+		const footerSpace = 35;
 		if (this.currentY + requiredSpace > this.pageHeight - footerSpace) {
 			this.addFooter();
 			this.doc.addPage();
