@@ -50,10 +50,6 @@ export default function EvaluationResults({
 
 	const groupedEvaluations = groupEvaluationsByLot();
 
-	const averageConfidence = Math.round(
-		evaluationResult.overallConfidence * 100,
-	);
-
 	const companiesIdentified = evaluationResult.lots.filter(
 		(lot) => lot.hasProposal && hasCompanyInfo(lot),
 	).length;
@@ -155,9 +151,6 @@ export default function EvaluationResults({
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-orange-700">Confiança</p>
-								<p className="text-2xl font-bold text-orange-900">
-									{averageConfidence}%
-								</p>
 							</div>
 							<div className="p-3 bg-orange-200 rounded-full">
 								<TrendingUp className="h-6 w-6 text-orange-700" />

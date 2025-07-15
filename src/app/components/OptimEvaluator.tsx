@@ -140,7 +140,6 @@ export default function OptimEvaluator() {
 						...lot,
 						// Assegurar que sempre tenim aquests camps, fins i tot si l'API no els retorna
 						companyName: lot.companyName || null,
-						companyConfidence: lot.companyConfidence || 0,
 					}),
 				),
 			};

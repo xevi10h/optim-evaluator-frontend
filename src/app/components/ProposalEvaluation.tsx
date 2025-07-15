@@ -3,11 +3,7 @@
 import React from 'react';
 import { Package, FileText, Building, Info } from 'lucide-react';
 import type { LotEvaluation } from '@/types';
-import {
-	getDisplayName,
-	hasCompanyInfo,
-	getCompanyConfidenceText,
-} from '@/types';
+import { getDisplayName, hasCompanyInfo } from '@/types';
 
 interface ProposalEvaluationProps {
 	evaluation: LotEvaluation;
@@ -23,7 +19,6 @@ export default function ProposalEvaluation({
 		evaluation.proposalName,
 	);
 	const showCompanyInfo = hasCompanyInfo(evaluation);
-	const confidenceText = getCompanyConfidenceText(evaluation.companyConfidence);
 
 	return (
 		<div className="p-6 space-y-6">
@@ -41,18 +36,13 @@ export default function ProposalEvaluation({
 						</h6>
 						<p className="text-blue-800 font-medium">{displayName}</p>
 
-						{showCompanyInfo ? (
+						{showCompanyInfo && (
 							<div className="flex items-center space-x-2 mt-2">
 								<Info className="h-4 w-4 text-blue-600" />
 								<span className="text-xs text-blue-700">
-									Identificació: {confidenceText} (
-									{Math.round(evaluation.companyConfidence * 100)}%)
+									Empresa identificada automàticament
 								</span>
 							</div>
-						) : (
-							<p className="text-xs text-gray-600 mt-1">
-								Empresa no identificada automàticament
-							</p>
 						)}
 					</div>
 				</div>

@@ -139,32 +139,6 @@ export default function ComparisonComponent({
 		}
 	};
 
-	// Crear badge informatiu per empresa/document
-	const createCompanyBadge = (
-		companyName: string | null,
-		proposalName: string,
-	) => {
-		const showCompanyIcon =
-			companyName !== null && companyName.trim().length > 0;
-		const displayName = getShortDisplayName(companyName, proposalName);
-
-		return (
-			<div className="flex items-center space-x-2">
-				{showCompanyIcon ? (
-					<Building className="h-4 w-4 text-slate-600" />
-				) : (
-					<FileText className="h-4 w-4 text-slate-600" />
-				)}
-				<span className="text-sm font-medium">{displayName}</span>
-				{showCompanyIcon && (
-					<span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-						✓ Identificada
-					</span>
-				)}
-			</div>
-		);
-	};
-
 	if (!comparison && !isComparing) {
 		return (
 			<div className="p-6">
@@ -323,9 +297,6 @@ export default function ComparisonComponent({
 						<p className="text-sm opacity-90">
 							{companiesIdentified}/{comparison.proposalNames.length} empreses
 							identificades
-						</p>
-						<p className="text-lg font-semibold">
-							Confiança: {Math.round(comparison.confidence * 100)}%
 						</p>
 					</div>
 				</div>

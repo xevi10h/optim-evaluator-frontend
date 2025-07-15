@@ -9,7 +9,6 @@ import {
 	getDisplayName,
 	hasCompanyInfo,
 	getCompanyNameOrDefault,
-	getCompanyConfidenceText,
 } from '@/types';
 import { PDFTableUtils } from './pdfTableUtils';
 
@@ -105,6 +104,22 @@ export class PDFGeneratorService {
 		return `avaluacio_${basicInfo.expedient}_${cleanCompanyPart}_${dateStr}.pdf`;
 	}
 
+	private addLotInfoWithLineBreak(
+		lotNumber: number,
+		lotTitle: string,
+		startX: number,
+		startY: number,
+		maxWidth: number,
+	): number {
+		const fullLotText = `${lotNumber} - ${lotTitle}`;
+
+		const lines = this.doc.splitTextToSize(fullLotText, maxWidth);
+
+		this.doc.text(lines, startX, startY);
+
+		return lines.length * 5;
+	}
+
 	private addSingleEvaluationContent(evaluation: LotEvaluation): void {
 		this.checkPageBreak(30);
 		this.addSectionTitle(`AVALUACIÓ DETALLADA`);
@@ -167,9 +182,6 @@ export class PDFGeneratorService {
 			evaluation.proposalName,
 		);
 		const showCompanyInfo = hasCompanyInfo(evaluation);
-		const confidenceText = getCompanyConfidenceText(
-			evaluation.companyConfidence,
-		);
 
 		const infoItems = [
 			['Títol:', basicInfo.title],
@@ -180,21 +192,37 @@ export class PDFGeneratorService {
 				showCompanyInfo ? 'Empresa avaluada:' : 'Document avaluat:',
 				displayName,
 			],
-			['Lot:', `${evaluation.lotNumber} - ${evaluation.lotTitle}`],
-			[
-				"Confiança de l'avaluació:",
-				`${Math.round(evaluation.confidence * 100)}%`,
-			],
 			['Criteris avaluats:', evaluation.criteria.length.toString()],
 		];
 
+		infoItems.forEach(([label, value]) => {
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text(label, this.margin, this.currentY);
+			this.doc.setFont('helvetica', 'normal');
+			const valueHeight = this.addWrappedText(
+				value,
+				this.margin + 80,
+				this.currentY,
+				this.contentWidth - 80,
+			);
+			this.currentY += Math.max(6, valueHeight + 1);
+		});
+
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text('Lot:', this.margin, this.currentY);
+		this.doc.setFont('helvetica', 'normal');
+
+		const lotHeight = this.addLotInfoWithLineBreak(
+			evaluation.lotNumber,
+			evaluation.lotTitle,
+			this.margin + 80,
+			this.currentY,
+			this.contentWidth - 80,
+		);
+		this.currentY += Math.max(6, lotHeight + 1);
+
 		if (showCompanyInfo) {
-			infoItems.push([
-				'Identificació empresa:',
-				`${confidenceText} (${Math.round(
-					evaluation.companyConfidence * 100,
-				)}%)`,
-			]);
+			infoItems.push(['Identificació empresa:', displayName]);
 		} else {
 			infoItems.push([
 				'Identificació empresa:',
@@ -259,15 +287,10 @@ export class PDFGeneratorService {
 			['Expedient:', basicInfo.expedient],
 			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
 			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
-			['Lot comparat:', `${comparison.lotNumber} - ${comparison.lotTitle}`],
 			['Propostes comparades:', displayNames.join(', ')],
 			[
 				'Empreses identificades:',
 				`${companiesIdentified}/${comparison.proposalNames.length}`,
-			],
-			[
-				'Confiança de la comparació:',
-				`${Math.round(comparison.confidence * 100)}%`,
 			],
 		];
 
@@ -284,7 +307,18 @@ export class PDFGeneratorService {
 			this.currentY += Math.max(6, valueHeight + 1);
 		});
 
-		this.currentY += 20;
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text('Lot comparat:', this.margin, this.currentY);
+		this.doc.setFont('helvetica', 'normal');
+
+		const lotHeight = this.addLotInfoWithLineBreak(
+			comparison.lotNumber,
+			comparison.lotTitle,
+			this.margin + 50,
+			this.currentY,
+			this.contentWidth - 50,
+		);
+		this.currentY += Math.max(6, lotHeight + 1);
 	}
 
 	private addGlobalRanking(comparison: ProposalComparison): void {
@@ -581,10 +615,7 @@ export class PDFGeneratorService {
 			['Expedient:', basicInfo.expedient],
 			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
 			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
-			[
-				"Confiança de l'avaluació:",
-				`${Math.round(evaluationResult.overallConfidence * 100)}%`,
-			],
+
 			['Lots avaluats:', evaluationResult.extractedLots.length.toString()],
 			['Total propostes avaluades:', totalProposals.toString()],
 			['Empreses identificades:', `${companiesIdentified}/${totalProposals}`],

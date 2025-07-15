@@ -14,12 +14,7 @@ import {
 import CollapsibleSection from './CollapsibleSection';
 import ProposalEvaluation from './ProposalEvaluation';
 import ComparisonComponent from './ComparisonComponent';
-import {
-	getDisplayName,
-	getShortDisplayName,
-	hasCompanyInfo,
-	getCompanyConfidenceText,
-} from '@/types';
+import { getDisplayName, getShortDisplayName, hasCompanyInfo } from '@/types';
 import type {
 	LotInfo,
 	LotEvaluation,
@@ -54,9 +49,6 @@ export default function LotEvaluationComponent({
 			evaluation.companyName,
 			evaluation.proposalName,
 		);
-		const confidenceText = getCompanyConfidenceText(
-			evaluation.companyConfidence,
-		);
 
 		return (
 			<div className="flex items-center space-x-2">
@@ -66,15 +58,6 @@ export default function LotEvaluationComponent({
 					<FileText className="h-4 w-4 text-slate-600" />
 				)}
 				<span className="text-sm font-medium">{displayName}</span>
-				{showCompanyIcon ? (
-					<span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-						✓ {confidenceText}
-					</span>
-				) : (
-					<span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-						⚠ No identificada
-					</span>
-				)}
 			</div>
 		);
 	};
@@ -297,20 +280,9 @@ export default function LotEvaluationComponent({
 							evaluation.proposalName,
 						);
 						const showCompanyIcon = hasCompanyInfo(evaluation);
-						const confidenceText = getCompanyConfidenceText(
-							evaluation.companyConfidence,
-						);
 
 						// Crear un subtítol més informatiu
-						const subtitle = [
-							`Confiança avaluació: ${Math.round(
-								evaluation.confidence * 100,
-							)}%`,
-							`${criteriaCount} criteris avaluats`,
-							showCompanyIcon
-								? `Empresa: ${confidenceText}`
-								: 'Empresa no identificada',
-						].join(' | ');
+						const subtitle = [`${criteriaCount} criteris avaluats`].join(' | ');
 
 						return (
 							<div

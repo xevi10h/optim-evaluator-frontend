@@ -215,17 +215,6 @@ export function hasCompanyInfo(evaluation: LotEvaluation): boolean {
 }
 
 /**
- * Converteix la confiança numèrica en text descriptiu
- */
-export function getCompanyConfidenceText(confidence: number): string {
-	if (confidence >= 0.8) return 'Alta confiança';
-	if (confidence >= 0.6) return 'Confiança mitjana';
-	if (confidence >= 0.4) return 'Baixa confiança';
-	if (confidence > 0) return 'Molt baixa confiança';
-	return 'No identificada';
-}
-
-/**
  * Retorna el nom de l'empresa o un text per defecte
  */
 export function getCompanyNameOrDefault(
