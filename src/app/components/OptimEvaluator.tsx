@@ -20,6 +20,7 @@ import type {
 	LotInfo,
 	ProposalComparison,
 	EvaluationProgress,
+	LotEvaluation,
 } from '@/types';
 
 export default function OptimEvaluator() {
@@ -85,7 +86,6 @@ export default function OptimEvaluator() {
 		extractLots();
 	}, [specificationFiles]);
 
-	// Funció per calcular el nombre total de propostes
 	const getTotalProposals = () => {
 		const groupedByName = new Map<string, ProposalFile[]>();
 
@@ -161,11 +161,15 @@ export default function OptimEvaluator() {
 		}
 	};
 
-	const generatePDF = () => {
+	const generatePDF = (specificEvaluation?: LotEvaluation) => {
 		if (!evaluationResult) return;
 
 		const pdfGenerator = new PDFGeneratorService();
-		pdfGenerator.generateEvaluationReport(evaluationResult, basicInfo);
+		pdfGenerator.generateEvaluationReport(
+			evaluationResult,
+			basicInfo,
+			specificEvaluation,
+		);
 	};
 
 	const generateComparisonPDF = (comparison: ProposalComparison) => {
@@ -194,7 +198,6 @@ export default function OptimEvaluator() {
 		>
 			<Header />
 
-			{/* Evaluation Loader */}
 			<EvaluationLoader
 				isVisible={isEvaluating}
 				progress={evaluationProgress}

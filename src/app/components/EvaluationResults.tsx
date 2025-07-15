@@ -21,7 +21,7 @@ import type {
 interface EvaluationResultsProps {
 	evaluationResult: EvaluationResult;
 	specifications: FileContent[];
-	onDownloadPDF: () => void;
+	onDownloadPDF: (evaluation?: LotEvaluation) => void;
 	onDownloadComparisonPDF: (comparison: ProposalComparison) => void;
 }
 
@@ -52,7 +52,6 @@ export default function EvaluationResults({
 
 	const groupedEvaluations = groupEvaluationsByLot();
 
-	// Calculem estadístiques per als indicadors
 	const totalProposals = evaluationResult.lots.filter(
 		(lot) => lot.hasProposal,
 	).length;
@@ -65,7 +64,6 @@ export default function EvaluationResults({
 			className="border-t animate-fade-in"
 			style={{ borderColor: '#dfe7e6' }}
 		>
-			{/* Header */}
 			<div
 				className="px-6 py-4 animate-slide-in-up"
 				style={{
@@ -82,7 +80,6 @@ export default function EvaluationResults({
 			</div>
 
 			<div className="p-6 space-y-8">
-				{/* Summary Cards Section - Mejorado */}
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
 					<div
 						className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-l-4 hover:shadow-lg transition-shadow duration-300"
@@ -132,7 +129,9 @@ export default function EvaluationResults({
 									Criteris Analitzats
 								</p>
 								<p className="text-2xl font-bold text-purple-900">
-									{totalCriteria / totalProposals}
+									{totalProposals > 0
+										? Math.round(totalCriteria / totalProposals)
+										: 0}
 								</p>
 							</div>
 							<div className="p-3 bg-purple-200 rounded-full">
@@ -159,7 +158,6 @@ export default function EvaluationResults({
 					</div>
 				</div>
 
-				{/* Overall Summary */}
 				{evaluationResult.overallSummary && (
 					<div
 						className="rounded-xl p-6 animate-fade-in shadow-sm"
@@ -185,7 +183,6 @@ export default function EvaluationResults({
 					</div>
 				)}
 
-				{/* Lot Evaluations */}
 				<div className="space-y-8">
 					{evaluationResult.extractedLots.map((lotInfo, index) => {
 						const lotEvaluations =
@@ -212,7 +209,6 @@ export default function EvaluationResults({
 					})}
 				</div>
 
-				{/* Overall Recommendation */}
 				{evaluationResult.overallRecommendation && (
 					<div
 						className="rounded-xl p-6 animate-fade-in shadow-sm"
@@ -247,7 +243,6 @@ export default function EvaluationResults({
 					</div>
 				)}
 
-				{/* Download Buttons Section */}
 				<div
 					className="space-y-6 animate-fade-in"
 					style={{ animationDelay: '1s', animationFillMode: 'both' }}
@@ -259,7 +254,6 @@ export default function EvaluationResults({
 						Descarregar Informes
 					</h4>
 
-					{/* Download buttons for each lot and proposal */}
 					<div className="space-y-4">
 						{evaluationResult.extractedLots.map((lotInfo) => {
 							const lotEvaluations =
@@ -284,7 +278,7 @@ export default function EvaluationResults({
 											(evaluation: LotEvaluation) => (
 												<button
 													key={`${evaluation.lotNumber}-${evaluation.proposalName}`}
-													onClick={onDownloadPDF}
+													onClick={() => onDownloadPDF(evaluation)}
 													className="px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-lg shadow-md"
 													style={{
 														background:
@@ -310,13 +304,12 @@ export default function EvaluationResults({
 						})}
 					</div>
 
-					{/* Global download button */}
 					<div
 						className="flex justify-center pt-4 border-t"
 						style={{ borderColor: '#dfe7e6' }}
 					>
 						<button
-							onClick={onDownloadPDF}
+							onClick={() => onDownloadPDF()}
 							className="px-8 py-4 rounded-xl font-semibold flex items-center space-x-3 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-xl shadow-lg"
 							style={{
 								background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',

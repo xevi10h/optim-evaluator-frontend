@@ -125,6 +125,18 @@ export interface FileInfo {
 export interface EvaluationRequest {
 	specifications: FileContent[];
 	proposals: FileContent[];
+	lots: LotInfo[];
+	sessionId?: string;
+}
+
+export interface LotExtractionRequest {
+	specifications: FileContent[];
+}
+
+export interface ComparisonRequest {
+	specifications: FileContent[];
+	lotInfo: LotInfo;
+	evaluatedProposals: LotEvaluation[];
 }
 
 export interface PDFProcessingOptions {
@@ -163,6 +175,4 @@ export const MIN_JUSTIFICATION_LENGTH = 100;
 export type EvaluationScore = keyof typeof EVALUATION_SCORES;
 export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
-
-// Callback type for progress updates
 export type ProgressCallback = (progress: EvaluationProgress) => void;

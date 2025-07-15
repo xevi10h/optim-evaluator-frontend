@@ -1,5 +1,10 @@
 import jsPDF from 'jspdf';
-import type { EvaluationResult, BasicInfo, ProposalComparison } from '@/types';
+import type {
+	EvaluationResult,
+	BasicInfo,
+	ProposalComparison,
+	LotEvaluation,
+} from '@/types';
 import { PDFTableUtils } from './pdfTableUtils';
 
 export class PDFGeneratorService {
@@ -20,33 +25,44 @@ export class PDFGeneratorService {
 	generateEvaluationReport(
 		evaluationResult: EvaluationResult,
 		basicInfo: BasicInfo,
+		specificEvaluation?: LotEvaluation,
 	): void {
 		this.addFirstPageTitle();
 		this.currentY = 90;
 
-		this.addGeneralInfo(basicInfo, evaluationResult);
+		if (specificEvaluation) {
+			this.addGeneralInfoForSingleEvaluation(basicInfo, specificEvaluation);
+			this.addSingleEvaluationContent(specificEvaluation);
+		} else {
+			this.addGeneralInfo(basicInfo, evaluationResult);
 
-		if (
-			evaluationResult.overallSummary &&
-			evaluationResult.overallSummary.trim()
-		) {
-			this.addOverallSummary(evaluationResult);
-		}
+			if (
+				evaluationResult.overallSummary &&
+				evaluationResult.overallSummary.trim()
+			) {
+				this.addOverallSummary(evaluationResult);
+			}
 
-		this.addLotsEvaluation(evaluationResult);
+			this.addLotsEvaluation(evaluationResult);
 
-		if (
-			evaluationResult.overallRecommendation &&
-			evaluationResult.overallRecommendation.trim()
-		) {
-			this.addOverallRecommendation(evaluationResult);
+			if (
+				evaluationResult.overallRecommendation &&
+				evaluationResult.overallRecommendation.trim()
+			) {
+				this.addOverallRecommendation(evaluationResult);
+			}
 		}
 
 		this.addFooter();
 
-		const fileName = `avaluacio_${basicInfo.expedient}_${
-			new Date().toISOString().split('T')[0]
-		}.pdf`;
+		const fileName = specificEvaluation
+			? `avaluacio_${basicInfo.expedient}_${specificEvaluation.proposalName}_${
+					new Date().toISOString().split('T')[0]
+			  }.pdf`
+			: `avaluacio_${basicInfo.expedient}_${
+					new Date().toISOString().split('T')[0]
+			  }.pdf`;
+
 		this.doc.save(fileName);
 	}
 
@@ -69,6 +85,167 @@ export class PDFGeneratorService {
 			new Date().toISOString().split('T')[0]
 		}.pdf`;
 		this.doc.save(fileName);
+	}
+
+	private addSingleEvaluationContent(evaluation: LotEvaluation): void {
+		this.checkPageBreak(30);
+		this.addSectionTitle(`AVALUACIÓ DETALLADA`);
+
+		this.doc.setFontSize(10);
+		this.doc.setTextColor(60, 60, 60);
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text('Resum de la Proposta:', this.margin, this.currentY);
+		this.currentY += 8;
+
+		this.doc.setFont('helvetica', 'normal');
+		const summaryHeight = this.addFormattedText(
+			evaluation.summary,
+			this.margin,
+			this.currentY,
+			this.contentWidth,
+		);
+		this.currentY += summaryHeight + 15;
+
+		if (evaluation.criteria.length > 0) {
+			this.addSubSectionTitle('CRITERIS AVALUATS');
+
+			evaluation.criteria.forEach((criterion, index) => {
+				this.checkPageBreak(80);
+				this.addCriterionEvaluation(criterion, index + 1);
+			});
+		}
+
+		this.checkPageBreak(30);
+		this.doc.setFontSize(12);
+		this.doc.setTextColor(3, 105, 161);
+		this.doc.setFont('helvetica', 'bold');
+		this.doc.text('Anàlisi de la Proposta:', this.margin, this.currentY);
+		this.currentY += 10;
+
+		this.doc.setFontSize(10);
+		this.doc.setTextColor(3, 105, 161);
+		this.doc.setFont('helvetica', 'normal');
+		const recommendationHeight = this.addFormattedText(
+			evaluation.recommendation,
+			this.margin,
+			this.currentY,
+			this.contentWidth,
+		);
+		this.currentY += recommendationHeight + 10;
+	}
+
+	private addFormattedText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth: number,
+		lineHeight: number = 5,
+	): number {
+		const parts = this.parseFormattedText(text);
+		let currentY = y;
+
+		for (const part of parts) {
+			this.doc.setFont('helvetica', part.isBold ? 'bold' : 'normal');
+
+			const lines = this.doc.splitTextToSize(part.text, maxWidth);
+			this.doc.text(lines, x, currentY);
+			currentY += lines.length * lineHeight;
+		}
+
+		return currentY - y;
+	}
+
+	private parseFormattedText(
+		text: string,
+	): Array<{ text: string; isBold: boolean }> {
+		const parts: Array<{ text: string; isBold: boolean }> = [];
+		const regex = /\*\*(.*?)\*\*/g;
+		let lastIndex = 0;
+		let match;
+
+		while ((match = regex.exec(text)) !== null) {
+			// Add text before the bold part
+			if (match.index > lastIndex) {
+				const beforeText = text.substring(lastIndex, match.index);
+				if (beforeText.trim()) {
+					parts.push({ text: beforeText, isBold: false });
+				}
+			}
+
+			// Add the bold part
+			parts.push({ text: match[1], isBold: true });
+			lastIndex = regex.lastIndex;
+		}
+
+		// Add remaining text
+		if (lastIndex < text.length) {
+			const remainingText = text.substring(lastIndex);
+			if (remainingText.trim()) {
+				parts.push({ text: remainingText, isBold: false });
+			}
+		}
+
+		// If no bold formatting found, return the entire text as normal
+		if (parts.length === 0) {
+			parts.push({ text: text, isBold: false });
+		}
+
+		return parts;
+	}
+
+	private addGeneralInfoForSingleEvaluation(
+		basicInfo: BasicInfo,
+		evaluation: LotEvaluation,
+	): void {
+		this.addSectionTitle('INFORMACIÓ GENERAL');
+
+		this.doc.setFontSize(10);
+		this.doc.setTextColor(60, 60, 60);
+		this.doc.setFont('helvetica', 'normal');
+
+		const infoItems = [
+			['Títol:', basicInfo.title],
+			['Expedient:', basicInfo.expedient],
+			['Entitat Contractant:', basicInfo.entity || 'No especificat'],
+			["Data d'avaluació:", new Date().toLocaleDateString('ca-ES')],
+			['Proposta avaluada:', evaluation.proposalName],
+			['Lot:', `${evaluation.lotNumber} - ${evaluation.lotTitle}`],
+			[
+				"Confiança de l'avaluació:",
+				`${Math.round(evaluation.confidence * 100)}%`,
+			],
+			['Criteris avaluats:', evaluation.criteria.length.toString()],
+		];
+
+		infoItems.forEach(([label, value]) => {
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text(label, this.margin, this.currentY);
+			this.doc.setFont('helvetica', 'normal');
+			const valueHeight = this.addWrappedText(
+				value,
+				this.margin + 50,
+				this.currentY,
+				this.contentWidth - 50,
+			);
+			this.currentY += Math.max(6, valueHeight + 1);
+		});
+
+		if (basicInfo.context) {
+			this.currentY += 5;
+			this.doc.setFont('helvetica', 'bold');
+			this.doc.text('Context Addicional:', this.margin, this.currentY);
+			this.currentY += 5;
+			this.doc.setFont('helvetica', 'normal');
+			const contextHeight = this.addWrappedText(
+				basicInfo.context,
+				this.margin,
+				this.currentY,
+				this.contentWidth,
+			);
+			this.currentY += contextHeight + 5;
+		}
+
+		this.currentY += 20;
 	}
 
 	private checkPageBreak(requiredSpace: number): void {
@@ -317,7 +494,7 @@ export class PDFGeneratorService {
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
-		const summaryHeight = this.addWrappedText(
+		const summaryHeight = this.addFormattedText(
 			comparison.summary,
 			this.margin,
 			this.currentY,
@@ -412,7 +589,7 @@ export class PDFGeneratorService {
 			this.currentY += 5;
 
 			this.doc.setFont('helvetica', 'normal');
-			const recHeight = this.addWrappedText(
+			const recHeight = this.addFormattedText(
 				ranking.recommendation,
 				this.margin,
 				this.currentY,
@@ -537,7 +714,7 @@ export class PDFGeneratorService {
 		this.doc.setFontSize(10);
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
-		const summaryHeight = this.addWrappedText(
+		const summaryHeight = this.addFormattedText(
 			evaluationResult.overallSummary,
 			this.margin,
 			this.currentY,
@@ -597,66 +774,6 @@ export class PDFGeneratorService {
 				}
 
 				if (hasMultipleLots || lotEvaluations.length > 1) {
-					this.checkPageBreak(20);
-
-					this.doc.setFontSize(10);
-					this.doc.setTextColor(60, 60, 60);
-					this.doc.setFont('helvetica', 'bold');
-					this.doc.text(
-						lotEvaluations.length > 1
-							? `Resum - ${evaluation.proposalName}:`
-							: 'Resum del Lot:',
-						this.margin,
-						this.currentY,
-					);
-					this.currentY += 8;
-
-					this.doc.setFontSize(10);
-					this.doc.setTextColor(60, 60, 60);
-					this.doc.setFont('helvetica', 'normal');
-					const contentHeight = this.addWrappedText(
-						evaluation.summary,
-						this.margin,
-						this.currentY,
-						this.contentWidth,
-					);
-					this.currentY += contentHeight + 10;
-				}
-
-				if (evaluation.criteria.length > 0) {
-					this.checkPageBreak(30);
-
-					if (hasMultipleLots || lotEvaluations.length > 1) {
-						this.addSubSectionTitle(
-							lotEvaluations.length > 1
-								? `Criteris - ${evaluation.proposalName}`
-								: 'Criteris Identificats',
-						);
-					} else {
-						this.addSubSectionTitle('CRITERIS IDENTIFICATS');
-					}
-
-					evaluation.criteria.forEach((criterion: any) => {
-						this.checkPageBreak(8);
-
-						this.doc.setFontSize(9);
-						this.doc.setTextColor(60, 60, 60);
-						this.doc.setFont('helvetica', 'normal');
-
-						const criteriaHeight = this.addWrappedText(
-							`• ${criterion.criterion}`,
-							this.margin + 5,
-							this.currentY,
-							this.contentWidth - 10,
-							5,
-						);
-						this.currentY += Math.max(5, criteriaHeight);
-					});
-
-					this.currentY += 10;
-				}
-
-				if (hasMultipleLots || lotEvaluations.length > 1) {
 					this.addSubSectionTitle(
 						lotEvaluations.length > 1
 							? `Avaluació - ${evaluation.proposalName}`
@@ -689,7 +806,7 @@ export class PDFGeneratorService {
 					this.doc.setFontSize(10);
 					this.doc.setTextColor(3, 105, 161);
 					this.doc.setFont('helvetica', 'normal');
-					const contentHeight = this.addWrappedText(
+					const contentHeight = this.addFormattedText(
 						evaluation.recommendation,
 						this.margin,
 						this.currentY,
@@ -708,7 +825,7 @@ export class PDFGeneratorService {
 					this.doc.setFontSize(10);
 					this.doc.setTextColor(3, 105, 161);
 					this.doc.setFont('helvetica', 'normal');
-					const contentHeight = this.addWrappedText(
+					const contentHeight = this.addFormattedText(
 						evaluation.recommendation,
 						this.margin,
 						this.currentY,
@@ -760,7 +877,7 @@ export class PDFGeneratorService {
 		this.currentY += 5;
 
 		this.doc.setFont('helvetica', 'normal');
-		const justificationHeight = this.addWrappedText(
+		const justificationHeight = this.addFormattedText(
 			criterion.justification,
 			this.margin,
 			this.currentY,
@@ -870,7 +987,7 @@ export class PDFGeneratorService {
 		const contentHeight = lines.length * 5;
 		this.checkPageBreak(contentHeight + 10);
 
-		this.addWrappedText(
+		this.addFormattedText(
 			evaluationResult.overallRecommendation,
 			this.margin,
 			this.currentY,

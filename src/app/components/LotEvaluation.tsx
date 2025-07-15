@@ -215,7 +215,7 @@ export default function LotEvaluationComponent({
 											style={{ color: '#199875' }}
 										/>
 									}
-									isOpenByDefault={evalIndex === 0}
+									isOpenByDefault={false}
 									badgeText=""
 									badgeColor={badgeColor}
 									customBadge={createScoreBadge()}

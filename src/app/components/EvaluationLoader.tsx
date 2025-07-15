@@ -13,14 +13,13 @@ export default function EvaluationLoader({
 	isVisible,
 	progress,
 }: EvaluationLoaderProps) {
-	console.log('EvaluationLoader render:', { isVisible, progress });
-
 	if (!isVisible) return null;
 
+	const currentProgress = progress?.progress || 0;
+
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
+		<div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-30 backdrop-blur-sm">
 			<div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-md w-full">
-				{/* Header */}
 				<div className="text-center mb-8">
 					<div className="flex items-center justify-center mb-4">
 						<div className="p-3 bg-gradient-to-r from-green-100 to-blue-100 rounded-full">
@@ -35,24 +34,21 @@ export default function EvaluationLoader({
 					</p>
 				</div>
 
-				{/* Progress Bar */}
 				<div className="mb-6">
 					<div className="flex justify-between text-sm text-gray-600 mb-2">
 						<span>Progrés</span>
-						<span>{progress?.progress || 0}%</span>
+						<span>{currentProgress}%</span>
 					</div>
 					<div className="w-full bg-gray-200 rounded-full h-3">
 						<div
-							className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
-							style={{ width: `${progress?.progress || 0}%` }}
+							className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-300 ease-out"
+							style={{ width: `${currentProgress}%` }}
 						></div>
 					</div>
 				</div>
 
-				{/* Current Status */}
 				{progress && (
 					<div className="space-y-4">
-						{/* Current Proposal Info */}
 						<div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
 							<div className="flex items-center space-x-3">
 								<div className="p-2 bg-green-100 rounded-lg">
@@ -69,7 +65,6 @@ export default function EvaluationLoader({
 							</div>
 						</div>
 
-						{/* Lot Info */}
 						<div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
 							<div className="flex items-center space-x-3">
 								<div className="p-2 bg-blue-100 rounded-lg">
@@ -86,7 +81,6 @@ export default function EvaluationLoader({
 							</div>
 						</div>
 
-						{/* Progress Counter */}
 						<div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
 							<div className="flex items-center space-x-3">
 								<div className="p-2 bg-purple-100 rounded-lg">
@@ -103,14 +97,12 @@ export default function EvaluationLoader({
 							</div>
 						</div>
 
-						{/* Status Message */}
 						<div className="text-center">
 							<p className="text-sm text-gray-600 italic">{progress.status}</p>
 						</div>
 					</div>
 				)}
 
-				{/* Footer */}
 				<div className="mt-8 text-center">
 					<div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
 						<div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
