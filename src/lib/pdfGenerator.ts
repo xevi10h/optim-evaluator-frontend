@@ -195,7 +195,7 @@ export class PDFGeneratorService {
 			this.doc.setFont('helvetica', 'normal');
 			const valueHeight = this.addWrappedText(
 				value,
-				this.margin + 50,
+				this.margin + 80,
 				this.currentY,
 				this.contentWidth - 50,
 			);
@@ -741,7 +741,7 @@ export class PDFGeneratorService {
 
 	// Mètodes auxiliars
 	private checkPageBreak(requiredSpace: number): void {
-		const footerSpace = 60;
+		const footerSpace = 100;
 		if (this.currentY + requiredSpace > this.pageHeight - footerSpace) {
 			this.addFooter();
 			this.doc.addPage();
