@@ -1,9 +1,3 @@
-export interface FileWithContent {
-	file: File;
-	content: string;
-	name: string;
-}
-
 export interface FileContent {
 	name: string;
 	content: string;
@@ -30,8 +24,8 @@ export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
 	proposalName: string;
-	companyName: string | null; // Nom de l'empresa o null si no s'ha pogut identificar
-	companyConfidence: number; // Confiança de la identificació d'empresa (0-1)
+	companyName: string | null;
+	companyConfidence: number;
 	hasProposal: boolean;
 	criteria: EvaluationCriteria[];
 	summary: string;
@@ -39,19 +33,48 @@ export interface LotEvaluation {
 	confidence: number;
 }
 
+// New single lot evaluation types
+export interface SingleLotEvaluationRequest {
+	specifications: FileContent[];
+	proposals: FileContent[]; // Only proposals for this specific lot
+	lotInfo: LotInfo; // Single lot info instead of array
+}
+
+export interface SingleLotEvaluationResult {
+	lotNumber: number;
+	lotTitle: string;
+	evaluations: LotEvaluation[];
+	extractedCriteria: number;
+	processingTime: number;
+}
+
+// Updated evaluation result for frontend
 export interface EvaluationResult {
 	lots: LotEvaluation[];
 	extractedLots: LotInfo[];
 	overallSummary: string;
 	overallRecommendation: string;
 	overallConfidence: number;
+	// New fields for tracking progress
+	completedLots?: number;
+	totalLots?: number;
+	isComplete?: boolean;
+}
+
+// Progress tracking for frontend
+export interface EvaluationProgress {
+	currentLot: number;
+	totalLots: number;
+	currentLotTitle: string;
+	isEvaluating: boolean;
+	completedEvaluations: LotEvaluation[];
 }
 
 export interface CriterionComparison {
 	criterion: string;
 	proposals: Array<{
 		proposalName: string;
-		companyName: string | null; // Nom de l'empresa o null
+		companyName: string | null;
 		score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 		arguments: string[];
 		position: number;
@@ -60,9 +83,14 @@ export interface CriterionComparison {
 
 export interface ComparisonRanking {
 	proposalName: string;
-	companyName: string | null; // Nom de l'empresa o null
+	companyName: string | null;
 	position: number;
-	overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
+	overallScore:
+		| 'Excepcional'
+		| 'Molt bé'
+		| 'Notable'
+		| 'Millorable'
+		| 'Insuficient';
 	strengths: string[];
 	weaknesses: string[];
 	recommendation: string;
@@ -72,16 +100,112 @@ export interface ProposalComparison {
 	lotNumber: number;
 	lotTitle: string;
 	proposalNames: string[];
-	companyNames: (string | null)[]; // Array de noms d'empresa o null
+	companyNames: (string | null)[];
 	criteriaComparisons: CriterionComparison[];
 	globalRanking: ComparisonRanking[];
 	summary: string;
 	confidence: number;
 }
 
+export interface ComparisonRequest {
+	specifications: FileContent[];
+	lotInfo: LotInfo;
+	evaluatedProposals: LotEvaluation[];
+}
+
 export interface ComparisonResult {
 	comparison: ProposalComparison;
 	timestamp: string;
+}
+
+export interface ProcessedFile {
+	name: string;
+	content: string;
+	type: 'specification' | 'proposal';
+	success: boolean;
+	extractedLength?: number;
+	error?: string;
+}
+
+export interface UploadResponse {
+	success: boolean;
+	files: ProcessedFile[];
+	summary: {
+		total: number;
+		successful: number;
+		failed: number;
+	};
+}
+
+export interface LotExtractionRequest {
+	specifications: FileContent[];
+}
+
+export interface CriteriaExtractionRequest {
+	specifications: FileContent[];
+}
+
+export interface CriteriaExtractionResponse {
+	success: boolean;
+	criteria: string[];
+	count: number;
+}
+
+export interface APIError {
+	message: string;
+	status: number;
+	code?: string;
+}
+
+export const SUPPORTED_FILE_TYPES = [
+	'application/pdf',
+	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+	'application/msword',
+	'text/plain',
+] as const;
+
+export const EVALUATION_SCORES = {
+	INSUFICIENT: 'INSUFICIENT',
+	REGULAR: 'REGULAR',
+	COMPLEIX_EXITOSAMENT: 'COMPLEIX_EXITOSAMENT',
+} as const;
+
+export const SCORE_VALUES = {
+	INSUFICIENT: 1,
+	REGULAR: 2,
+	COMPLEIX_EXITOSAMENT: 3,
+} as const;
+
+export const RECOMMENDATION_TYPES = {
+	POSITIVE: 'positive',
+	CONDITIONAL: 'conditional',
+	NEGATIVE: 'negative',
+} as const;
+
+export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
+export type EvaluationScore = keyof typeof EVALUATION_SCORES;
+export type RecommendationType = keyof typeof RECOMMENDATION_TYPES;
+
+export interface ScoreStatistics {
+	total: number;
+	excellent: number;
+	regular: number;
+	insufficient: number;
+	averageScore: number;
+	recommendationType: RecommendationType;
+}
+
+export interface ValidationSchemas {
+	uploadSchema: any;
+	evaluationSchema: any;
+	criteriaExtractionSchema: any;
+}
+
+// Frontend specific types
+export interface FileWithContent {
+	file: File;
+	content: string;
+	name: string;
 }
 
 export interface ProcessingState {
@@ -117,22 +241,6 @@ export interface FileInfo {
 	isSupported: boolean;
 }
 
-export interface EvaluationRequest {
-	specifications: FileContent[];
-	proposals: FileContent[];
-	lots: LotInfo[];
-}
-
-export interface LotExtractionRequest {
-	specifications: FileContent[];
-}
-
-export interface ComparisonRequest {
-	specifications: FileContent[];
-	lotInfo: LotInfo;
-	evaluatedProposals: LotEvaluation[];
-}
-
 export interface PDFProcessingOptions {
 	maxPages?: number;
 	timeout?: number;
@@ -147,34 +255,15 @@ export interface ProcessingError {
 	step?: string;
 }
 
-export const SUPPORTED_FILE_TYPES = [
-	'application/pdf',
-	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-	'application/msword',
-	'text/plain',
-] as const;
-
 export const SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt'] as const;
-
-export const EVALUATION_SCORES = {
-	INSUFICIENT: 'INSUFICIENT',
-	REGULAR: 'REGULAR',
-	COMPLEIX_EXITOSAMENT: 'COMPLEIX_EXITOSAMENT',
-} as const;
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const MAX_CRITERIA = 8;
 export const MIN_JUSTIFICATION_LENGTH = 100;
 
-export type EvaluationScore = keyof typeof EVALUATION_SCORES;
-export type SupportedFileType = (typeof SUPPORTED_FILE_TYPES)[number];
 export type SupportedExtension = (typeof SUPPORTED_EXTENSIONS)[number];
 
-// FUNCIONS SIMPLIFICADES PER GESTIÓ D'EMPRESES
-
-/**
- * Retorna el nom a mostrar: nom d'empresa si està disponible, sinó nom del document amb indicació
- */
+// Utility functions for company management
 export function getDisplayName(
 	companyName: string | null,
 	proposalName: string,
@@ -185,9 +274,6 @@ export function getDisplayName(
 	return `${proposalName} (empresa no identificada)`;
 }
 
-/**
- * Retorna un nom curt per mostrar en espais reduïts
- */
 export function getShortDisplayName(
 	companyName: string | null,
 	proposalName: string,
@@ -205,18 +291,12 @@ export function getShortDisplayName(
 	return `${shortName} (no identificada)`;
 }
 
-/**
- * Comprova si tenim informació d'empresa identificada
- */
 export function hasCompanyInfo(evaluation: LotEvaluation): boolean {
 	return (
 		evaluation.companyName !== null && evaluation.companyName.trim().length > 0
 	);
 }
 
-/**
- * Retorna el nom de l'empresa o un text per defecte
- */
 export function getCompanyNameOrDefault(
 	companyName: string | null,
 	defaultText: string = 'Empresa no especificada',

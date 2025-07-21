@@ -14,12 +14,7 @@ import {
 	Building,
 	FileText,
 } from 'lucide-react';
-import {
-	getDisplayName,
-	getShortDisplayName,
-	hasCompanyInfo,
-	getCompanyNameOrDefault,
-} from '@/types';
+import { getDisplayName, getShortDisplayName } from '@/types';
 import type {
 	ProposalComparison,
 	LotEvaluation,
@@ -27,6 +22,7 @@ import type {
 	FileContent,
 } from '@/types';
 import { apiService } from '@/lib/apiService';
+import ComparisonLoader from './ComparisonLoader';
 
 interface ComparisonComponentProps {
 	lotInfo: LotInfo;
@@ -139,6 +135,42 @@ export default function ComparisonComponent({
 		}
 	};
 
+	// Show loader while comparing
+	if (isComparing) {
+		return (
+			<>
+				<ComparisonLoader
+					isVisible={isComparing}
+					lotNumber={lotInfo.lotNumber}
+					lotTitle={lotInfo.title}
+					proposalCount={evaluatedProposals.length}
+				/>
+				<div className="p-6">
+					<div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-8 text-center border border-green-200">
+						<Loader2 className="h-12 w-12 mx-auto mb-6 animate-spin text-green-600" />
+						<h4 className="text-xl font-bold text-green-900 mb-3">
+							Comparant Propostes...
+						</h4>
+						<p className="text-green-700 mb-4">
+							Analitzant les diferències i similituds entre les empreses
+						</p>
+						<div className="flex items-center justify-center space-x-2 text-sm text-green-600">
+							<div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+							<div
+								className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+								style={{ animationDelay: '0.1s' }}
+							></div>
+							<div
+								className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
+								style={{ animationDelay: '0.2s' }}
+							></div>
+						</div>
+					</div>
+				</div>
+			</>
+		);
+	}
+
 	if (!comparison && !isComparing) {
 		return (
 			<div className="p-6">
@@ -210,33 +242,6 @@ export default function ComparisonComponent({
 						<p className="text-sm text-red-800">{error}</p>
 					</div>
 				)}
-			</div>
-		);
-	}
-
-	if (isComparing) {
-		return (
-			<div className="p-6">
-				<div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-8 text-center border border-green-200">
-					<Loader2 className="h-12 w-12 mx-auto mb-6 animate-spin text-green-600" />
-					<h4 className="text-xl font-bold text-green-900 mb-3">
-						Comparant Propostes...
-					</h4>
-					<p className="text-green-700 mb-4">
-						Analitzant les diferències i similituds entre les empreses
-					</p>
-					<div className="flex items-center justify-center space-x-2 text-sm text-green-600">
-						<div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-						<div
-							className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
-							style={{ animationDelay: '0.1s' }}
-						></div>
-						<div
-							className="w-2 h-2 bg-green-500 rounded-full animate-bounce"
-							style={{ animationDelay: '0.2s' }}
-						></div>
-					</div>
-				</div>
 			</div>
 		);
 	}

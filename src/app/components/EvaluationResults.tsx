@@ -3,16 +3,13 @@
 import React from 'react';
 import {
 	CheckCircle,
-	Download,
 	Package,
 	FileText,
-	Users,
-	Target,
 	TrendingUp,
 	Building,
 } from 'lucide-react';
 import LotEvaluationComponent from './LotEvaluation';
-import { getDisplayName, hasCompanyInfo } from '@/types';
+import { hasCompanyInfo } from '@/types';
 import type {
 	EvaluationResult,
 	FileContent,
@@ -190,6 +187,7 @@ export default function EvaluationResults({
 									specifications={specifications}
 									hasMultipleLots={hasMultipleLots}
 									onDownloadComparisonPDF={onDownloadComparisonPDF}
+									onDownloadPDF={onDownloadPDF}
 								/>
 							</div>
 						);
@@ -211,7 +209,7 @@ export default function EvaluationResults({
 							style={{ color: '#0369a1' }}
 						>
 							<div className="p-2 bg-blue-200 rounded-lg mr-3">
-								<Users className="h-5 w-5 text-blue-700" />
+								<TrendingUp className="h-5 w-5 text-blue-700" />
 							</div>
 							Anàlisi General
 						</h4>
@@ -230,104 +228,35 @@ export default function EvaluationResults({
 					</div>
 				)}
 
+				{/* INFO: Download section has been moved to individual lots */}
 				<div
-					className="space-y-6 animate-fade-in"
+					className="animate-fade-in bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200"
 					style={{ animationDelay: '1s', animationFillMode: 'both' }}
 				>
-					<h4
-						className="text-lg font-semibold text-center"
-						style={{ color: '#1c1c1c' }}
-					>
-						Descarregar Informes
-					</h4>
-
-					<div className="space-y-4">
-						{evaluationResult.extractedLots.map((lotInfo) => {
-							const lotEvaluations =
-								groupedEvaluations.get(lotInfo.lotNumber) || [];
-							const proposalsWithEvaluations = lotEvaluations.filter(
-								(evaluation: LotEvaluation) => evaluation.hasProposal,
-							);
-
-							return (
-								<div key={lotInfo.lotNumber} className="space-y-3">
-									{hasMultipleLots && (
-										<h5
-											className="text-md font-medium text-center"
-											style={{ color: '#6f6f6f' }}
-										>
-											Lot {lotInfo.lotNumber}: {lotInfo.title}
-										</h5>
-									)}
-
-									<div className="flex flex-wrap justify-center gap-3">
-										{proposalsWithEvaluations.map(
-											(evaluation: LotEvaluation) => {
-												const displayName = getDisplayName(
-													evaluation.companyName,
-													evaluation.proposalName,
-												);
-												const showCompanyIcon = hasCompanyInfo(evaluation);
-
-												return (
-													<button
-														key={`${evaluation.lotNumber}-${evaluation.proposalName}`}
-														onClick={() => onDownloadPDF(evaluation)}
-														className="px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-lg shadow-md"
-														style={{
-															background:
-																'linear-gradient(135deg, #199875 0%, #188869 100%)',
-														}}
-														onMouseEnter={(e) => {
-															e.currentTarget.style.background =
-																'linear-gradient(135deg, #188869 0%, #177759 100%)';
-														}}
-														onMouseLeave={(e) => {
-															e.currentTarget.style.background =
-																'linear-gradient(135deg, #199875 0%, #188869 100%)';
-														}}
-													>
-														{showCompanyIcon ? (
-															<Building className="h-4 w-4" />
-														) : (
-															<FileText className="h-4 w-4" />
-														)}
-														<Download className="h-4 w-4" />
-														<span className="max-w-40 truncate">
-															{displayName}
-														</span>
-													</button>
-												);
-											},
-										)}
-									</div>
-								</div>
-							);
-						})}
-					</div>
-
-					<div
-						className="flex justify-center pt-4 border-t"
-						style={{ borderColor: '#dfe7e6' }}
-					>
-						<button
-							onClick={() => onDownloadPDF()}
-							className="px-8 py-4 rounded-xl font-semibold flex items-center space-x-3 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-xl shadow-lg"
-							style={{
-								background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-							}}
-							onMouseEnter={(e) => {
-								e.currentTarget.style.background =
-									'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)';
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.background =
-									'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
-							}}
-						>
-							<Download className="h-5 w-5" />
-							<span>Descarregar Informe Complet</span>
-						</button>
+					<div className="text-center">
+						<div className="p-3 bg-green-100 rounded-full mx-auto w-fit mb-4">
+							<CheckCircle className="h-8 w-8 text-green-600" />
+						</div>
+						<h4 className="text-lg font-bold text-green-800 mb-2">
+							Avaluació Completada amb Èxit
+						</h4>
+						<p className="text-sm text-green-700 max-w-2xl mx-auto">
+							Tots els informes es poden descarregar des de la secció de cada
+							lot. Cada lot inclou els informes individuals de les seves
+							propostes i, si és possible, l'informe comparatiu entre empreses.
+						</p>
+						<div className="flex items-center justify-center space-x-6 mt-4 text-xs text-green-600">
+							<div className="flex items-center space-x-2">
+								<div className="w-2 h-2 bg-green-500 rounded-full"></div>
+								<span>Informes individuals dins de cada lot</span>
+							</div>
+							<div className="flex items-center space-x-2">
+								<div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+								<span>
+									Comparació disponible per lots amb múltiples propostes
+								</span>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

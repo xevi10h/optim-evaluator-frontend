@@ -33,13 +33,12 @@ export interface UploadResponse {
 	};
 }
 
-// ACTUALITZAT: Amb informació d'empresa
 export interface LotEvaluation {
 	lotNumber: number;
 	lotTitle: string;
 	proposalName: string;
-	companyName: string | null; // NOU CAMP
-	companyConfidence: number; // NOU CAMP
+	companyName: string | null;
+	companyConfidence: number;
 	hasProposal: boolean;
 	criteria: Array<{
 		criterion: string;
@@ -54,24 +53,42 @@ export interface LotEvaluation {
 	confidence: number;
 }
 
+// New single lot evaluation types
+export interface SingleLotEvaluationRequest {
+	specifications: FileContent[];
+	proposals: FileContent[];
+	lotInfo: LotInfo;
+}
+
+export interface SingleLotEvaluationResult {
+	lotNumber: number;
+	lotTitle: string;
+	evaluations: LotEvaluation[];
+	extractedCriteria: number;
+	processingTime: number;
+}
+
 export interface EvaluationResult {
 	lots: LotEvaluation[];
 	extractedLots: LotInfo[];
 	overallSummary: string;
 	overallRecommendation: string;
 	overallConfidence: number;
+	completedLots?: number;
+	totalLots?: number;
+	isComplete?: boolean;
 }
 
 export interface ProposalComparison {
 	lotNumber: number;
 	lotTitle: string;
 	proposalNames: string[];
-	companyNames: (string | null)[]; // NOU CAMP
+	companyNames: (string | null)[];
 	criteriaComparisons: Array<{
 		criterion: string;
 		proposals: Array<{
 			proposalName: string;
-			companyName: string | null; // NOU CAMP
+			companyName: string | null;
 			score: 'INSUFICIENT' | 'REGULAR' | 'COMPLEIX_EXITOSAMENT';
 			arguments: string[];
 			position: number;
@@ -79,7 +96,7 @@ export interface ProposalComparison {
 	}>;
 	globalRanking: Array<{
 		proposalName: string;
-		companyName: string | null; // NOU CAMP
+		companyName: string | null;
 		position: number;
 		overallScore: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
 		strengths: string[];
@@ -161,21 +178,126 @@ class ApiService {
 		});
 	}
 
-	async evaluateProposalWithLots(
+	// New method: evaluate single lot
+	async evaluateSingleLot(
 		specifications: FileContent[],
 		proposals: FileContent[],
-		lots: LotInfo[],
-	): Promise<EvaluationResult> {
-		console.log('Starting evaluation...');
+		lotInfo: LotInfo,
+	): Promise<SingleLotEvaluationResult> {
+		console.log(
+			`Starting evaluation for lot ${lotInfo.lotNumber}: ${lotInfo.title}`,
+		);
 
-		return this.makeRequest<EvaluationResult>('/evaluate-lots', {
+		return this.makeRequest<SingleLotEvaluationResult>('/evaluate-lot', {
 			method: 'POST',
 			body: JSON.stringify({
 				specifications,
 				proposals,
-				lots,
+				lotInfo,
 			}),
 		});
+	}
+
+	// Updated method: evaluate all lots (calls single lot evaluation for each)
+	async evaluateAllLots(
+		specifications: FileContent[],
+		proposals: FileContent[],
+		lots: LotInfo[],
+		onProgress?: (progress: {
+			currentLot: number;
+			totalLots: number;
+			currentLotTitle: string;
+		}) => void,
+	): Promise<EvaluationResult> {
+		console.log('Starting evaluation for all lots...');
+
+		const allEvaluations: LotEvaluation[] = [];
+		const totalLots = lots.length;
+
+		for (let i = 0; i < lots.length; i++) {
+			const lot = lots[i];
+
+			// Report progress
+			if (onProgress) {
+				onProgress({
+					currentLot: i + 1,
+					totalLots,
+					currentLotTitle: lot.title,
+				});
+			}
+
+			// Get proposals for this specific lot
+			const lotProposals = proposals.filter(
+				(p) => p.lotNumber === lot.lotNumber,
+			);
+
+			// Evaluate this lot
+			const lotResult = await this.evaluateSingleLot(
+				specifications,
+				lotProposals,
+				lot,
+			);
+
+			// Add evaluations to the collection
+			allEvaluations.push(...lotResult.evaluations);
+		}
+
+		// Build final result
+		const result: EvaluationResult = {
+			lots: allEvaluations,
+			extractedLots: lots,
+			overallSummary: this.generateOverallSummary(allEvaluations, lots),
+			overallRecommendation: this.generateOverallRecommendation(
+				allEvaluations,
+				lots,
+			),
+			overallConfidence:
+				allEvaluations.length > 0
+					? allEvaluations.reduce((sum, lot) => sum + lot.confidence, 0) /
+					  allEvaluations.length
+					: 0,
+			completedLots: lots.length,
+			totalLots: lots.length,
+			isComplete: true,
+		};
+
+		return result;
+	}
+
+	private generateOverallSummary(
+		evaluations: LotEvaluation[],
+		lots: LotInfo[],
+	): string {
+		const totalProposals = evaluations.filter((e) => e.hasProposal).length;
+		const companiesIdentified = evaluations.filter(
+			(e) => e.companyName !== null,
+		).length;
+
+		return (
+			`S'han avaluat ${totalProposals} propostes distribuïdes en ${lots.length} lots. ` +
+			`S'han identificat automàticament ${companiesIdentified} empreses de ${totalProposals} propostes presentades. ` +
+			`L'avaluació ha estat completada amb èxit utilitzant criteris específics per cada lot.`
+		);
+	}
+
+	private generateOverallRecommendation(
+		evaluations: LotEvaluation[],
+		lots: LotInfo[],
+	): string {
+		const hasMultipleLots = lots.length > 1;
+
+		if (hasMultipleLots) {
+			return (
+				`Es recomana revisar individualment cada lot i les seves respectives avaluacions. ` +
+				`Cada lot ha estat avaluat segons els seus criteris específics i requereix una anàlisi detallada ` +
+				`per prendre decisions informades sobre l'adjudicació.`
+			);
+		} else {
+			return (
+				`Es recomana revisar detingudament l'avaluació realitzada per prendre una decisió ` +
+				`informada sobre l'adjudicació d'aquest lot únic.`
+			);
+		}
 	}
 
 	async compareProposals(
@@ -187,13 +309,6 @@ class ApiService {
 			specificationsCount: specifications.length,
 			lotInfo,
 			evaluatedProposalsCount: evaluatedProposals.length,
-			evaluatedProposals: evaluatedProposals.map((p) => ({
-				name: p.proposalName,
-				company: p.companyName,
-				lotNumber: p.lotNumber,
-				hasProposal: p.hasProposal,
-				criteriaCount: p.criteria.length,
-			})),
 		});
 
 		const requestBody = {
@@ -201,12 +316,6 @@ class ApiService {
 			lotInfo,
 			evaluatedProposals,
 		};
-
-		console.log('Request body structure:', {
-			hasSpecifications: Array.isArray(requestBody.specifications),
-			hasLotInfo: !!requestBody.lotInfo,
-			hasEvaluatedProposals: Array.isArray(requestBody.evaluatedProposals),
-		});
 
 		return this.makeRequest<ComparisonResult>('/compare-proposals', {
 			method: 'POST',
@@ -257,13 +366,27 @@ export function useApiService() {
 	const extractLots = (specifications: FileContent[]) =>
 		executeRequest(() => apiService.extractLots(specifications));
 
-	const evaluateProposalWithLots = (
+	const evaluateSingleLot = (
+		specifications: FileContent[],
+		proposals: FileContent[],
+		lotInfo: LotInfo,
+	) =>
+		executeRequest(() =>
+			apiService.evaluateSingleLot(specifications, proposals, lotInfo),
+		);
+
+	const evaluateAllLots = (
 		specifications: FileContent[],
 		proposals: FileContent[],
 		lots: LotInfo[],
+		onProgress?: (progress: {
+			currentLot: number;
+			totalLots: number;
+			currentLotTitle: string;
+		}) => void,
 	) =>
 		executeRequest(() =>
-			apiService.evaluateProposalWithLots(specifications, proposals, lots),
+			apiService.evaluateAllLots(specifications, proposals, lots, onProgress),
 		);
 
 	const compareProposals = (
@@ -282,7 +405,8 @@ export function useApiService() {
 		error,
 		uploadFiles,
 		extractLots,
-		evaluateProposalWithLots,
+		evaluateSingleLot,
+		evaluateAllLots,
 		compareProposals,
 		healthCheck,
 		clearError: () => setError(null),

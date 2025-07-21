@@ -10,6 +10,7 @@ import {
 	AlertCircle,
 	XCircle,
 	Building,
+	Download,
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import ProposalEvaluation from './ProposalEvaluation';
@@ -28,6 +29,7 @@ interface LotEvaluationProps {
 	specifications: FileContent[];
 	hasMultipleLots: boolean;
 	onDownloadComparisonPDF: (comparison: ProposalComparison) => void;
+	onDownloadPDF?: (evaluation?: LotEvaluation) => void; // Made optional for backwards compatibility
 }
 
 export default function LotEvaluationComponent({
@@ -36,6 +38,7 @@ export default function LotEvaluationComponent({
 	specifications,
 	hasMultipleLots,
 	onDownloadComparisonPDF,
+	onDownloadPDF,
 }: LotEvaluationProps) {
 	const proposalsWithEvaluations = evaluations.filter(
 		(evaluation) => evaluation.hasProposal,
@@ -372,6 +375,101 @@ export default function LotEvaluationComponent({
 							onDownloadPDF={onDownloadComparisonPDF}
 						/>
 					</CollapsibleSection>
+				</div>
+			)}
+
+			{/* NUEVA SECCIÓN: Botones de descarga dentro del lot */}
+			{proposalsWithEvaluations.length > 0 && onDownloadPDF && (
+				<div
+					className="animate-fade-in bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200"
+					style={{ animationDelay: '400ms', animationFillMode: 'both' }}
+				>
+					<h5 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+						<Download className="h-5 w-5 mr-2 text-gray-600" />
+						Descarregar Informes del Lot {lotInfo.lotNumber}
+					</h5>
+
+					<div className="space-y-4">
+						{/* Individual evaluation downloads */}
+						<div>
+							<p className="text-sm font-medium text-gray-700 mb-3">
+								Informes Individuals per Proposta:
+							</p>
+							<div className="flex flex-wrap gap-3">
+								{proposalsWithEvaluations.map((evaluation) => {
+									const displayName = getDisplayName(
+										evaluation.companyName,
+										evaluation.proposalName,
+									);
+									const showCompanyIcon = hasCompanyInfo(evaluation);
+
+									return (
+										<button
+											key={`${evaluation.lotNumber}-${evaluation.proposalName}`}
+											onClick={() => onDownloadPDF(evaluation)}
+											className="px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all duration-300 text-white cursor-pointer transform hover:scale-105 hover:shadow-md shadow-sm"
+											style={{
+												background:
+													'linear-gradient(135deg, #199875 0%, #188869 100%)',
+											}}
+											onMouseEnter={(e) => {
+												e.currentTarget.style.background =
+													'linear-gradient(135deg, #188869 0%, #177759 100%)';
+											}}
+											onMouseLeave={(e) => {
+												e.currentTarget.style.background =
+													'linear-gradient(135deg, #199875 0%, #188869 100%)';
+											}}
+										>
+											{showCompanyIcon ? (
+												<Building className="h-4 w-4" />
+											) : (
+												<FileText className="h-4 w-4" />
+											)}
+											<Download className="h-4 w-4" />
+											<span className="max-w-32 truncate text-sm">
+												{displayName}
+											</span>
+										</button>
+									);
+								})}
+							</div>
+						</div>
+
+						{/* Comparison download (if available) */}
+						{canCompare && (
+							<div className="pt-3 border-t border-gray-300">
+								<p className="text-sm font-medium text-gray-700 mb-3">
+									Informe Comparatiu del Lot:
+								</p>
+								<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+									<div className="flex items-center space-x-3">
+										<div className="p-2 bg-blue-100 rounded">
+											<Users className="h-5 w-5 text-blue-600" />
+										</div>
+										<div className="flex-1">
+											<p className="text-sm font-medium text-blue-800">
+												Comparació entre {proposalsWithEvaluations.length}{' '}
+												propostes
+											</p>
+											<p className="text-xs text-blue-600 mt-1">
+												Genera el informe comparatiu després de fer la
+												comparació utilitzant el botó "Comparació entre
+												Empreses" de dalt.
+											</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+					</div>
+
+					<div className="mt-4 pt-3 border-t border-gray-300 text-center">
+						<p className="text-xs text-gray-500">
+							💡 Els informes contenen l'avaluació detallada amb criteris
+							específics per aquest lot
+						</p>
+					</div>
 				</div>
 			)}
 		</div>
