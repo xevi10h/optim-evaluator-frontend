@@ -43,82 +43,42 @@ export default function ComparisonLoader({
 
 					{/* Process Section */}
 					<div className="space-y-6">
-						{/* Current Process */}
-						<div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
-							<div className="flex items-center justify-center space-x-3 mb-4">
-								<GitCompare className="h-6 w-6 text-indigo-600" />
-								<div className="text-center">
-									<p className="text-sm font-medium text-indigo-800">
+						{/* Main Process Display */}
+						<div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-8 border border-indigo-200">
+							<div className="text-center space-y-4">
+								{/* Primary Icon with Animation */}
+								<div className="flex items-center justify-center">
+									<div className="p-4 bg-white rounded-full shadow-sm">
+										<GitCompare className="h-8 w-8 text-indigo-600 animate-pulse" />
+									</div>
+								</div>
+
+								{/* Main Message */}
+								<div>
+									<p className="text-lg font-semibold text-indigo-800 mb-2">
 										Anàlisi Comparatiu Intel·ligent
 									</p>
-									<p className="text-xs text-indigo-700">
-										Comparant criteris i puntuacions
+									<p className="text-sm text-indigo-700">
+										Comparant propostes i generant rànking global
 									</p>
 								</div>
-							</div>
 
-							{/* AI Process */}
-							<div className="flex items-center justify-center space-x-3">
-								<Users className="h-5 w-5 text-purple-600" />
-								<div className="text-center">
-									<p className="text-sm font-medium text-purple-800">
-										Generant Rànking Global
-									</p>
-									<p className="text-xs text-purple-700">
-										Avaluant punts forts i febles
-									</p>
-								</div>
-							</div>
-						</div>
-
-						{/* Process Steps */}
-						<div className="grid grid-cols-3 gap-3">
-							<div className="bg-white rounded-lg p-3 border border-indigo-200 text-center">
-								<div className="flex items-center justify-center mb-2">
-									<div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
-										<span className="text-white text-xs font-bold">1</span>
+								{/* Secondary Icons Row */}
+								<div className="flex items-center justify-center space-x-8 pt-4">
+									<div className="text-center">
+										<Users className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+										<p className="text-xs text-purple-700">Empreses</p>
+									</div>
+									<div className="text-center">
+										<Target className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+										<p className="text-xs text-blue-700">Criteris</p>
+									</div>
+									<div className="text-center">
+										<TrendingUp className="h-6 w-6 text-green-600 mx-auto mb-2" />
+										<p className="text-xs text-green-700">Anàlisi</p>
 									</div>
 								</div>
-								<p className="text-xs font-medium text-indigo-800">
-									Comparació
-								</p>
-								<p className="text-xs text-indigo-600">Per criteris</p>
-								<div className="mt-1">
-									<Loader2 className="h-3 w-3 animate-spin text-indigo-500 mx-auto" />
-								</div>
 							</div>
-							<div className="bg-white rounded-lg p-3 border border-purple-200 text-center">
-								<div className="flex items-center justify-center mb-2">
-									<div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-										<span className="text-white text-xs font-bold">2</span>
-									</div>
-								</div>
-								<p className="text-xs font-medium text-purple-800">Rànking</p>
-								<p className="text-xs text-purple-600">Global</p>
-								<div className="mt-1">
-									<Target className="h-3 w-3 text-purple-400 mx-auto" />
-								</div>
-							</div>
-							<div className="bg-white rounded-lg p-3 border border-blue-200 text-center">
-								<div className="flex items-center justify-center mb-2">
-									<div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-										<span className="text-white text-xs font-bold">3</span>
-									</div>
-								</div>
-								<p className="text-xs font-medium text-blue-800">Anàlisi</p>
-								<p className="text-xs text-blue-600">Detallada</p>
-								<div className="mt-1">
-									<TrendingUp className="h-3 w-3 text-blue-400 mx-auto" />
-								</div>
-							</div>
-						</div>
-
-						{/* Progress Animation */}
-						<div className="w-full bg-gray-200 rounded-full h-2">
-							<div
-								className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full animate-pulse"
-								style={{ width: '70%' }}
-							></div>
 						</div>
 					</div>
 
