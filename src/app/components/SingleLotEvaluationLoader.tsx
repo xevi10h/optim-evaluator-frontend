@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2, Brain, Package, Target } from 'lucide-react';
+import { Loader2, Brain, Package, CheckCircle } from 'lucide-react';
 
 interface SingleLotEvaluationLoaderProps {
 	isVisible: boolean;
@@ -43,10 +43,10 @@ export default function SingleLotEvaluationLoader({
 								<Package className="h-6 w-6 text-blue-600" />
 								<div className="text-center">
 									<p className="text-sm font-medium text-blue-800">
-										Processament Específic del Lot
+										Avaluació en Procés
 									</p>
 									<p className="text-xs text-blue-700">
-										Extracció de criteris i avaluació de propostes
+										Criteris extrets - Avaluant propostes
 									</p>
 								</div>
 							</div>
@@ -59,50 +59,10 @@ export default function SingleLotEvaluationLoader({
 										Intel·ligència Artificial Especialitzada
 									</p>
 									<p className="text-xs text-purple-700">
-										Anàlisi profund de criteris i propostes
+										Anàlisi profund de cada criteri
 									</p>
 								</div>
 							</div>
-						</div>
-
-						{/* Process Steps */}
-						<div className="grid grid-cols-2 gap-4">
-							<div className="bg-white rounded-lg p-4 border border-blue-200 text-center">
-								<div className="flex items-center justify-center mb-2">
-									<div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-										<span className="text-white text-xs font-bold">1</span>
-									</div>
-								</div>
-								<p className="text-xs font-medium text-blue-800">
-									Extracció Criteris
-								</p>
-								<p className="text-xs text-blue-600">Identificant requisits</p>
-								<div className="mt-2">
-									<Loader2 className="h-4 w-4 animate-spin text-blue-500 mx-auto" />
-								</div>
-							</div>
-							<div className="bg-white rounded-lg p-4 border border-purple-200 text-center">
-								<div className="flex items-center justify-center mb-2">
-									<div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-										<span className="text-white text-xs font-bold">2</span>
-									</div>
-								</div>
-								<p className="text-xs font-medium text-purple-800">
-									Avaluació Propostes
-								</p>
-								<p className="text-xs text-purple-600">Analitzant qualitat</p>
-								<div className="mt-2">
-									<Target className="h-4 w-4 text-purple-400 mx-auto" />
-								</div>
-							</div>
-						</div>
-
-						{/* Progress Animation */}
-						<div className="w-full bg-gray-200 rounded-full h-2">
-							<div
-								className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse"
-								style={{ width: '75%' }}
-							></div>
 						</div>
 					</div>
 
@@ -123,7 +83,7 @@ export default function SingleLotEvaluationLoader({
 							Avaluació personalitzada per aquest lot
 						</p>
 						<p className="text-xs text-gray-500 mt-1">
-							Processat amb criteris específics
+							Processant cada criteri amb IA
 						</p>
 					</div>
 				</div>

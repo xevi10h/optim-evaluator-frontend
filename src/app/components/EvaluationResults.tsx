@@ -15,6 +15,7 @@ import type {
 	FileContent,
 	ProposalComparison,
 	LotEvaluation,
+	LotInfo,
 } from '@/types';
 
 interface EvaluationResultsProps {
@@ -22,6 +23,11 @@ interface EvaluationResultsProps {
 	specifications: FileContent[];
 	onDownloadPDF: (evaluation?: LotEvaluation) => void;
 	onDownloadComparisonPDF: (comparison: ProposalComparison) => void;
+	// Nuevas props para manejar la comparación
+	isComparing: boolean;
+	onStartComparison: (lotInfo: LotInfo) => void;
+	onComparisonComplete: (comparison: ProposalComparison) => void;
+	onComparisonError: (error: string) => void;
 }
 
 export default function EvaluationResults({
@@ -29,6 +35,10 @@ export default function EvaluationResults({
 	specifications,
 	onDownloadPDF,
 	onDownloadComparisonPDF,
+	isComparing,
+	onStartComparison,
+	onComparisonComplete,
+	onComparisonError,
 }: EvaluationResultsProps) {
 	const hasMultipleLots = evaluationResult.extractedLots.length > 1;
 
@@ -188,6 +198,10 @@ export default function EvaluationResults({
 									hasMultipleLots={hasMultipleLots}
 									onDownloadComparisonPDF={onDownloadComparisonPDF}
 									onDownloadPDF={onDownloadPDF}
+									isComparing={isComparing}
+									onStartComparison={onStartComparison}
+									onComparisonComplete={onComparisonComplete}
+									onComparisonError={onComparisonError}
 								/>
 							</div>
 						);

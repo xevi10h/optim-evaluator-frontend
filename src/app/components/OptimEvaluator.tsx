@@ -12,6 +12,7 @@ import IndividualLotResults from './IndividualLotResults';
 import EvaluationResults from './EvaluationResults';
 import ProgressiveEvaluationLoader from './ProgressiveEvaluationLoader';
 import SingleLotEvaluationLoader from './SingleLotEvaluationLoader';
+import ComparisonLoader from './ComparisonLoader';
 import Tooltip from './Tooltip';
 import { apiService } from '@/lib/apiService';
 import { PDFGeneratorService } from '@/lib/pdfGenerator';
@@ -85,6 +86,11 @@ export default function OptimEvaluator() {
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
+	// NUEVO: Estados para controlar el loader de comparación
+	const [isComparingProposals, setIsComparingProposals] = useState(false);
+	const [currentComparingLot, setCurrentComparingLot] =
+		useState<LotInfo | null>(null);
+
 	// Update lot statuses when lots or proposals change
 	useEffect(() => {
 		const newStatuses = new Map<number, LotEvaluationStatus>();
@@ -150,6 +156,27 @@ export default function OptimEvaluator() {
 
 		extractLots();
 	}, [specificationFiles]);
+
+	// NUEVAS FUNCIONES: Manejar comparación de propostas
+	const handleStartComparison = (lotInfo: LotInfo) => {
+		console.log('🔄 Starting comparison for lot:', lotInfo);
+		setIsComparingProposals(true);
+		setCurrentComparingLot(lotInfo);
+		setError(null);
+	};
+
+	const handleComparisonComplete = (comparison: ProposalComparison) => {
+		console.log('✅ Comparison completed:', comparison);
+		setIsComparingProposals(false);
+		setCurrentComparingLot(null);
+	};
+
+	const handleComparisonError = (errorMessage: string) => {
+		console.error('❌ Comparison error:', errorMessage);
+		setIsComparingProposals(false);
+		setCurrentComparingLot(null);
+		setError(errorMessage);
+	};
 
 	const getProposalsForLot = (lotNumber: number): ProposalFile[] => {
 		return proposalFiles.filter((file) => file.lotNumber === lotNumber);
@@ -544,6 +571,18 @@ export default function OptimEvaluator() {
 				}
 			/>
 
+			{/* NUEVO: Comparison loader */}
+			<ComparisonLoader
+				isVisible={isComparingProposals}
+				lotNumber={currentComparingLot?.lotNumber || 0}
+				lotTitle={currentComparingLot?.title || ''}
+				proposalCount={
+					currentComparingLot
+						? getProposalsForLot(currentComparingLot.lotNumber).length
+						: 0
+				}
+			/>
+
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="space-y-6">
 					<BasicInfoForm basicInfo={basicInfo} setBasicInfo={setBasicInfo} />
@@ -765,6 +804,11 @@ export default function OptimEvaluator() {
 								specifications={specifications}
 								onDownloadPDF={generatePDF}
 								onDownloadComparisonPDF={generateComparisonPDF}
+								// NUEVAS PROPS: Para manejar comparación
+								isComparing={isComparingProposals}
+								onStartComparison={handleStartComparison}
+								onComparisonComplete={handleComparisonComplete}
+								onComparisonError={handleComparisonError}
 							/>
 						)}
 
@@ -775,6 +819,11 @@ export default function OptimEvaluator() {
 								specifications={specifications}
 								onDownloadPDF={generatePDF}
 								onDownloadComparisonPDF={generateComparisonPDF}
+								// NUEVAS PROPS: Para manejar comparación
+								isComparing={isComparingProposals}
+								onStartComparison={handleStartComparison}
+								onComparisonComplete={handleComparisonComplete}
+								onComparisonError={handleComparisonError}
 							/>
 						)}
 					</div>

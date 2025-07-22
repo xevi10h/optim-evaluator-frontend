@@ -29,7 +29,12 @@ interface LotEvaluationProps {
 	specifications: FileContent[];
 	hasMultipleLots: boolean;
 	onDownloadComparisonPDF: (comparison: ProposalComparison) => void;
-	onDownloadPDF?: (evaluation?: LotEvaluation) => void; // Made optional for backwards compatibility
+	onDownloadPDF?: (evaluation?: LotEvaluation) => void;
+	// Nuevas props para manejar la comparación
+	isComparing: boolean;
+	onStartComparison: (lotInfo: LotInfo) => void;
+	onComparisonComplete: (comparison: ProposalComparison) => void;
+	onComparisonError: (error: string) => void;
 }
 
 export default function LotEvaluationComponent({
@@ -39,6 +44,10 @@ export default function LotEvaluationComponent({
 	hasMultipleLots,
 	onDownloadComparisonPDF,
 	onDownloadPDF,
+	isComparing,
+	onStartComparison,
+	onComparisonComplete,
+	onComparisonError,
 }: LotEvaluationProps) {
 	const proposalsWithEvaluations = evaluations.filter(
 		(evaluation) => evaluation.hasProposal,
@@ -373,6 +382,10 @@ export default function LotEvaluationComponent({
 							evaluatedProposals={proposalsWithEvaluations}
 							specifications={specifications}
 							onDownloadPDF={onDownloadComparisonPDF}
+							isComparing={isComparing}
+							onStartComparison={() => onStartComparison(lotInfo)}
+							onComparisonComplete={onComparisonComplete}
+							onComparisonError={onComparisonError}
 						/>
 					</CollapsibleSection>
 				</div>

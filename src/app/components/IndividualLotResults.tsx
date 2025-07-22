@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import LotEvaluationComponent from './LotEvaluation';
 import { getDisplayName, hasCompanyInfo } from '@/types';
-import type { LotEvaluation, FileContent, ProposalComparison } from '@/types';
+import type {
+	LotEvaluation,
+	FileContent,
+	ProposalComparison,
+	LotInfo,
+} from '@/types';
 
 interface IndividualLotEvaluation {
 	lotNumber: number;
@@ -28,6 +33,11 @@ interface IndividualLotResultsProps {
 	specifications: FileContent[];
 	onDownloadPDF: (evaluation?: LotEvaluation) => void;
 	onDownloadComparisonPDF: (comparison: ProposalComparison) => void;
+	// Nuevas props para manejar la comparación
+	isComparing: boolean;
+	onStartComparison: (lotInfo: LotInfo) => void;
+	onComparisonComplete: (comparison: ProposalComparison) => void;
+	onComparisonError: (error: string) => void;
 }
 
 export default function IndividualLotResults({
@@ -35,6 +45,10 @@ export default function IndividualLotResults({
 	specifications,
 	onDownloadPDF,
 	onDownloadComparisonPDF,
+	isComparing,
+	onStartComparison,
+	onComparisonComplete,
+	onComparisonError,
 }: IndividualLotResultsProps) {
 	if (lotResults.size === 0) return null;
 
@@ -175,6 +189,10 @@ export default function IndividualLotResults({
 									hasMultipleLots={sortedResults.length > 1}
 									onDownloadComparisonPDF={onDownloadComparisonPDF}
 									onDownloadPDF={onDownloadPDF}
+									isComparing={isComparing}
+									onStartComparison={onStartComparison}
+									onComparisonComplete={onComparisonComplete}
+									onComparisonError={onComparisonError}
 								/>
 							</div>
 						);
