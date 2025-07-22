@@ -201,12 +201,7 @@ export class PDFTableUtils {
 			criterionComp.proposals.forEach((proposal) => {
 				const positionIcon = this.getPositionText(proposal.position);
 				const scoreText = this.getScoreText(proposal.score);
-				const companyIndicator =
-					proposal.companyName !== null &&
-					proposal.companyName.trim().length > 0
-						? '[E]'
-						: '[D]';
-				cells.push(`${positionIcon} ${scoreText} ${companyIndicator}`);
+				cells.push(`${positionIcon} ${scoreText}`);
 			});
 
 			return { cells };
