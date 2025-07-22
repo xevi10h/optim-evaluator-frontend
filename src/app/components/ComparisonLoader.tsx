@@ -63,7 +63,7 @@ export default function ComparisonLoader({
 									</p>
 								</div>
 
-								{/* Secondary Icons Row */}
+								{/* Secondary Icons */}
 								<div className="flex items-center justify-center space-x-8 pt-4">
 									<div className="text-center">
 										<Users className="h-6 w-6 text-purple-600 mx-auto mb-2" />
