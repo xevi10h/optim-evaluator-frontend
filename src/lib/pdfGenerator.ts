@@ -58,6 +58,7 @@ export class PDFGeneratorService {
 			}
 		}
 
+		this.addAIDeclaration();
 		this.addFooter();
 
 		const fileName = specificEvaluation
@@ -82,12 +83,49 @@ export class PDFGeneratorService {
 		this.addCriteriaComparisonTable(comparison);
 		this.addDetailedCriteriaAnalysis(comparison);
 
+		this.addAIDeclaration();
 		this.addFooter();
 
 		const fileName = `comparacio_lot_${comparison.lotNumber}_${
 			new Date().toISOString().split('T')[0]
 		}.pdf`;
 		this.doc.save(fileName);
+	}
+
+	private addAIDeclaration(): void {
+		const declarationText = `Declaració sobre l'ús d'intel·ligència artificial: Aquest informe ha estat generat parcialment mitjançant l'ús d'un sistema d'intel·ligència artificial, en compliment del Reglament (UE) 2024/1083 del Parlament Europeu i del Consell. El sistema utilitzat no actua de manera autònoma ni substitueix la responsabilitat humana. El contingut ha de ser revisat abans de prendre decisions vinculants, i no pot ser emprat com a documentació definitiva sense aquesta revisió.`;
+
+		// Calcular espacio necesario de forma simple
+		const lines = this.doc.splitTextToSize(declarationText, this.contentWidth);
+		const totalSpaceNeeded = 30 + lines.length * 4; // espacio + líneas + margen
+
+		// Si no hay espacio, crear nueva página
+		const footerSpace = 60;
+		if (this.currentY + totalSpaceNeeded > this.pageHeight - footerSpace) {
+			this.addFooter();
+			this.doc.addPage();
+			this.addSmallHeader();
+			this.currentY = 60;
+		}
+
+		this.currentY += 10;
+
+		this.doc.setDrawColor(200, 200, 200);
+		this.doc.setLineWidth(0.5);
+		this.doc.line(
+			this.margin,
+			this.currentY,
+			this.pageWidth - this.margin,
+			this.currentY,
+		);
+		this.currentY += 10;
+
+		this.doc.setFontSize(9);
+		this.doc.setTextColor(100, 100, 100);
+		this.doc.setFont('helvetica', 'italic');
+
+		this.doc.text(lines, this.margin, this.currentY);
+		this.currentY += lines.length * 4 + 20;
 	}
 
 	private generateFileName(
@@ -148,14 +186,12 @@ export class PDFGeneratorService {
 			});
 		}
 
-		// SOLUCIÓ SIMPLE: Calcular l'espai aproximat necessari
-		const recommendationSpaceNeeded = this.estimateTextHeight(
+		// Calcular espacio para recomendación
+		const lines = this.doc.splitTextToSize(
 			evaluation.recommendation,
 			this.contentWidth,
 		);
-
-		// Espai per títol (12) + espai després del títol (10) + text + espai final (10)
-		const totalSpaceNeeded = 12 + 10 + recommendationSpaceNeeded + 10;
+		const totalSpaceNeeded = 12 + 10 + lines.length * 5 + 10;
 
 		this.checkPageBreak(totalSpaceNeeded);
 
@@ -175,18 +211,6 @@ export class PDFGeneratorService {
 			this.contentWidth,
 		);
 		this.currentY += recommendationHeight + 10;
-	}
-
-	private estimateTextHeight(text: string, maxWidth: number): number {
-		// Estimació simple basada en la longitud del text i l'amplada disponible
-		const averageCharWidth = 3; // Aproximació per font de 10px
-		const charactersPerLine = Math.floor(maxWidth / averageCharWidth);
-		const estimatedLines = Math.ceil(text.length / charactersPerLine);
-
-		// Afegir un 20% extra per ser conservadors amb negrites i format
-		const safetyMargin = 1.2;
-
-		return Math.ceil(estimatedLines * 5 * safetyMargin); // 5 és el lineHeight
 	}
 
 	private addGeneralInfoForSingleEvaluation(
@@ -229,7 +253,6 @@ export class PDFGeneratorService {
 			this.doc.text(label, this.margin, this.currentY);
 			this.doc.setFont('helvetica', 'normal');
 
-			// Usar addWrappedText per gestionar correctament els canvis de línia
 			const valueHeight = this.addWrappedText(
 				value,
 				this.margin + 80,
@@ -267,13 +290,11 @@ export class PDFGeneratorService {
 		this.doc.setTextColor(60, 60, 60);
 		this.doc.setFont('helvetica', 'normal');
 
-		// Crear llista de noms d'empreses/documents amb noms nets per PDF
 		const displayNames = comparison.proposalNames.map((name, index) => {
 			const companyName = comparison.companyNames[index];
 			return this.cleanFileName(getDisplayName(companyName, name));
 		});
 
-		// Comptar empreses identificades
 		const companiesIdentified = comparison.companyNames.filter(
 			(name) => name !== null && name.trim().length > 0,
 		).length;
@@ -343,7 +364,6 @@ export class PDFGeneratorService {
 					? '3r'
 					: `${ranking.position}è`;
 
-			// Afegir indicador d'empresa identificada/no identificada
 			const companyStatus = showCompanyInfo ? '[EMPRESA]' : '[DOCUMENT]';
 			this.doc.text(
 				`${positionIcon} - ${displayName} ${companyStatus}`,
@@ -451,14 +471,12 @@ export class PDFGeneratorService {
 			this.contentWidth,
 		);
 
-		// Crear noms per la taula amb indicadors d'empresa
 		const displayNames = comparison.proposalNames.map((name, index) => {
 			const companyName = comparison.companyNames[index];
 			const displayName = getDisplayName(companyName, name);
 			const showCompanyInfo =
 				companyName !== null && companyName.trim().length > 0;
 
-			// Abreujar per la taula i afegir indicador
 			const shortName =
 				displayName.length > 20
 					? `${displayName.substring(0, 17)}...`
@@ -473,7 +491,6 @@ export class PDFGeneratorService {
 			this.currentY,
 		);
 
-		// Afegir llegenda
 		this.currentY = endY + 10;
 		this.doc.setFontSize(8);
 		this.doc.setTextColor(100, 100, 100);

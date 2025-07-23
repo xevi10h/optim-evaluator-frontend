@@ -86,12 +86,43 @@ export default function OptimEvaluator() {
 		useState<EvaluationResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	// NUEVO: Estados para controlar el loader de comparación
 	const [isComparingProposals, setIsComparingProposals] = useState(false);
 	const [currentComparingLot, setCurrentComparingLot] =
 		useState<LotInfo | null>(null);
 
-	// Update lot statuses when lots or proposals change
+	const handleReset = () => {
+		if (
+			window.confirm(
+				'Estàs segur que vols resetar tota la informació? Aquesta acció no es pot desfer.',
+			)
+		) {
+			setBasicInfo({
+				title: '',
+				expedient: '',
+				entity: '',
+				context: '',
+			});
+			setSpecificationFiles([]);
+			setProposalFiles([]);
+			setExtractedLots([]);
+			setIsLoadingLots(false);
+			setEvaluationProgress({
+				isEvaluating: false,
+				currentLot: 0,
+				totalLots: 0,
+				currentLotTitle: '',
+				completedEvaluations: [],
+			});
+			setLotEvaluationStatuses(new Map());
+			setIndividualLotResults(new Map());
+			setCurrentEvaluatingLot(null);
+			setEvaluationResult(null);
+			setError(null);
+			setIsComparingProposals(false);
+			setCurrentComparingLot(null);
+		}
+	};
+
 	useEffect(() => {
 		const newStatuses = new Map<number, LotEvaluationStatus>();
 
@@ -140,7 +171,6 @@ export default function OptimEvaluator() {
 					setExtractedLots([{ lotNumber: 1, title: 'Lot Únic' }]);
 				}
 
-				// Reset all states when specs change
 				setProposalFiles([]);
 				setLotEvaluationStatuses(new Map());
 				setIndividualLotResults(new Map());
@@ -157,7 +187,6 @@ export default function OptimEvaluator() {
 		extractLots();
 	}, [specificationFiles]);
 
-	// NUEVAS FUNCIONES: Manejar comparación de propostas
 	const handleStartComparison = (lotInfo: LotInfo) => {
 		console.log('🔄 Starting comparison for lot:', lotInfo);
 		setIsComparingProposals(true);
@@ -234,7 +263,6 @@ export default function OptimEvaluator() {
 		setError(null);
 		setCurrentEvaluatingLot(lotInfo.lotNumber);
 
-		// Update status to evaluating
 		setLotEvaluationStatuses((prev) => {
 			const newStatuses = new Map(prev);
 			const status = newStatuses.get(lotInfo.lotNumber);
@@ -280,7 +308,6 @@ export default function OptimEvaluator() {
 				lotEvaluations,
 			);
 
-			// Update status with results
 			setLotEvaluationStatuses((prev) => {
 				const newStatuses = new Map(prev);
 				const status = newStatuses.get(lotInfo.lotNumber);
@@ -295,7 +322,6 @@ export default function OptimEvaluator() {
 				return newStatuses;
 			});
 
-			// Add to individual results - THIS IS KEY FOR IMMEDIATE DISPLAY
 			setIndividualLotResults((prev) => {
 				const newResults = new Map(prev);
 				newResults.set(lotInfo.lotNumber, {
@@ -318,7 +344,6 @@ export default function OptimEvaluator() {
 				}`,
 			);
 
-			// Reset status on error
 			setLotEvaluationStatuses((prev) => {
 				const newStatuses = new Map(prev);
 				const status = newStatuses.get(lotInfo.lotNumber);
@@ -346,7 +371,6 @@ export default function OptimEvaluator() {
 			return;
 		}
 
-		// Filter lots that have proposals
 		const lotsWithProposals = getLotsWithProposals();
 
 		if (lotsWithProposals.length === 0) {
@@ -356,7 +380,7 @@ export default function OptimEvaluator() {
 
 		setError(null);
 		setEvaluationResult(null);
-		setIndividualLotResults(new Map()); // Clear individual results for bulk evaluation
+		setIndividualLotResults(new Map());
 		setEvaluationProgress({
 			isEvaluating: true,
 			currentLot: 0,
@@ -374,7 +398,6 @@ export default function OptimEvaluator() {
 
 			const allEvaluations: LotEvaluation[] = [];
 
-			// Only evaluate lots with proposals
 			for (let i = 0; i < lotsWithProposals.length; i++) {
 				const lot = lotsWithProposals[i];
 
@@ -407,7 +430,6 @@ export default function OptimEvaluator() {
 
 				allEvaluations.push(...lotEvaluations);
 
-				// Update individual lot status
 				setLotEvaluationStatuses((prev) => {
 					const newStatuses = new Map(prev);
 					const status = newStatuses.get(lot.lotNumber);
@@ -422,10 +444,9 @@ export default function OptimEvaluator() {
 				});
 			}
 
-			// Create final result including all lots (even those without proposals)
 			const finalResult: EvaluationResult = {
 				lots: allEvaluations,
-				extractedLots: extractedLots, // Include all lots
+				extractedLots: extractedLots,
 				overallSummary: generateOverallSummary(
 					allEvaluations,
 					lotsWithProposals,
@@ -509,14 +530,47 @@ export default function OptimEvaluator() {
 	};
 
 	const generatePDF = (specificEvaluation?: LotEvaluation) => {
-		if (!evaluationResult) return;
+		console.log('📄 Generating PDF report...', {
+			evaluationResult,
+			specificEvaluation,
+			individualLotResults: individualLotResults.size,
+		});
 
 		const pdfGenerator = new PDFGeneratorService();
-		pdfGenerator.generateEvaluationReport(
-			evaluationResult,
-			basicInfo,
-			specificEvaluation,
-		);
+
+		if (specificEvaluation) {
+			// Para informes individuales, crear un EvaluationResult temporal
+			const tempEvaluationResult: EvaluationResult = {
+				lots: [specificEvaluation],
+				extractedLots: [
+					{
+						lotNumber: specificEvaluation.lotNumber,
+						title: specificEvaluation.lotTitle,
+					},
+				],
+				overallSummary: '',
+				overallRecommendation: '',
+				completedLots: 1,
+				totalLots: 1,
+				isComplete: true,
+			};
+
+			pdfGenerator.generateEvaluationReport(
+				tempEvaluationResult,
+				basicInfo,
+				specificEvaluation,
+			);
+		} else if (evaluationResult) {
+			// Para informes completos
+			pdfGenerator.generateEvaluationReport(
+				evaluationResult,
+				basicInfo,
+				specificEvaluation,
+			);
+		} else {
+			console.error('No evaluation data available for PDF generation');
+			return;
+		}
 	};
 
 	const generateComparisonPDF = (comparison: ProposalComparison) => {
@@ -546,9 +600,8 @@ export default function OptimEvaluator() {
 				background: 'linear-gradient(135deg, #dfe7e6 0%, #ffffff 100%)',
 			}}
 		>
-			<Header />
+			<Header onReset={handleReset} />
 
-			{/* Progressive loader for bulk evaluation */}
 			<ProgressiveEvaluationLoader
 				isVisible={evaluationProgress.isEvaluating}
 				currentLot={evaluationProgress.currentLot}
@@ -556,7 +609,6 @@ export default function OptimEvaluator() {
 				currentLotTitle={evaluationProgress.currentLotTitle}
 			/>
 
-			{/* Individual lot evaluation loader */}
 			<SingleLotEvaluationLoader
 				isVisible={isAnyLotEvaluating}
 				lotNumber={currentEvaluatingLot || 0}
@@ -566,7 +618,6 @@ export default function OptimEvaluator() {
 				}
 			/>
 
-			{/* NUEVO: Comparison loader */}
 			<ComparisonLoader
 				isVisible={isComparingProposals}
 				lotNumber={currentComparingLot?.lotNumber || 0}
@@ -757,7 +808,6 @@ export default function OptimEvaluator() {
 							</div>
 						</div>
 
-						{/* Evaluation Controls */}
 						<div
 							className="border-t px-6 py-4"
 							style={{ borderColor: '#dfe7e6', backgroundColor: '#dfe7e6' }}
@@ -772,7 +822,6 @@ export default function OptimEvaluator() {
 								totalLots={extractedLots.length}
 							/>
 
-							{/* Individual Lot Evaluation Buttons */}
 							{shouldShowProposalSection &&
 								lotsWithProposals.length > 0 &&
 								!evaluationProgress.isEvaluating && (
@@ -792,14 +841,12 @@ export default function OptimEvaluator() {
 								)}
 						</div>
 
-						{/* Individual Lot Results - THIS IS THE KEY ADDITION */}
 						{hasIndividualResults && !evaluationResult && (
 							<IndividualLotResults
 								lotResults={individualLotResults}
 								specifications={specifications}
 								onDownloadPDF={generatePDF}
 								onDownloadComparisonPDF={generateComparisonPDF}
-								// NUEVAS PROPS: Para manejar comparación
 								isComparing={isComparingProposals}
 								onStartComparison={handleStartComparison}
 								onComparisonComplete={handleComparisonComplete}
@@ -807,14 +854,12 @@ export default function OptimEvaluator() {
 							/>
 						)}
 
-						{/* Bulk Evaluation Results */}
 						{evaluationResult && (
 							<EvaluationResults
 								evaluationResult={evaluationResult}
 								specifications={specifications}
 								onDownloadPDF={generatePDF}
 								onDownloadComparisonPDF={generateComparisonPDF}
-								// NUEVAS PROPS: Para manejar comparación
 								isComparing={isComparingProposals}
 								onStartComparison={handleStartComparison}
 								onComparisonComplete={handleComparisonComplete}

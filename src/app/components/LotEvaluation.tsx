@@ -448,40 +448,6 @@ export default function LotEvaluationComponent({
 								})}
 							</div>
 						</div>
-
-						{/* Comparison download (if available) */}
-						{canCompare && (
-							<div className="pt-3 border-t border-gray-300">
-								<p className="text-sm font-medium text-gray-700 mb-3">
-									Informe Comparatiu del Lot:
-								</p>
-								<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-									<div className="flex items-center space-x-3">
-										<div className="p-2 bg-blue-100 rounded">
-											<Users className="h-5 w-5 text-blue-600" />
-										</div>
-										<div className="flex-1">
-											<p className="text-sm font-medium text-blue-800">
-												Comparació entre {proposalsWithEvaluations.length}{' '}
-												propostes
-											</p>
-											<p className="text-xs text-blue-600 mt-1">
-												Genera el informe comparatiu després de fer la
-												comparació utilitzant el botó "Comparació entre
-												Empreses" de dalt.
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
-						)}
-					</div>
-
-					<div className="mt-4 pt-3 border-t border-gray-300 text-center">
-						<p className="text-xs text-gray-500">
-							💡 Els informes contenen l'avaluació detallada amb criteris
-							específics per aquest lot
-						</p>
 					</div>
 				</div>
 			)}
