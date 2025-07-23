@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Building } from 'lucide-react';
+import { User } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Header() {
@@ -22,10 +22,10 @@ export default function Header() {
 						/>
 						<div>
 							<h1 className="text-2xl font-bold" style={{ color: '#1c1c1c' }}>
-								Optim Evaluator
+								Evaluador d'ofertes de Licitacions
 							</h1>
 							<p className="text-sm" style={{ color: '#6f6f6f' }}>
-								Sistema d'Avaluació de Licitacions
+								Sistema potenciat amb IA per a l'Avaluació de Licitacions
 							</p>
 						</div>
 					</div>
@@ -33,8 +33,8 @@ export default function Header() {
 						className="flex items-center space-x-2 text-sm"
 						style={{ color: '#6f6f6f' }}
 					>
-						<Building className="h-4 w-4" />
-						<span>Optim People</span>
+						<User className="h-4 w-4" />
+						<span>Admin</span>
 					</div>
 				</div>
 			</div>

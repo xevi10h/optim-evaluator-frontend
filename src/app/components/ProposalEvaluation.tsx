@@ -22,22 +22,6 @@ export default function ProposalEvaluation({
 
 	return (
 		<div className="p-6 space-y-6">
-			{/* Resum */}
-			<div
-				className="rounded-lg p-4"
-				style={{
-					backgroundColor: '#f8f9fa',
-					borderLeft: '4px solid #199875',
-				}}
-			>
-				<h6 className="text-md font-semibold mb-2" style={{ color: '#1c1c1c' }}>
-					Resum de l'Avaluació
-				</h6>
-				<p className="text-sm leading-relaxed" style={{ color: '#6f6f6f' }}>
-					{evaluation.summary}
-				</p>
-			</div>
-
 			{/* Avaluació per criteris */}
 			<div className="space-y-6">
 				<h6

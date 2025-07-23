@@ -84,8 +84,8 @@ export default function LotEvaluationButtons({
 									</p>
 									{status && (
 										<p className="text-xs text-gray-500 mt-1">
-											{status.proposalCount} proposta
-											{status.proposalCount > 1 ? 'es' : ''}
+											{status.proposalCount} propost
+											{status.proposalCount > 1 ? 'es' : 'a'}
 											{status.isEvaluated &&
 												` • ${status.evaluations.length} avaluació${
 													status.evaluations.length > 1 ? 'ns' : ''
@@ -143,38 +143,6 @@ export default function LotEvaluationButtons({
 						</div>
 					);
 				})}
-			</div>
-
-			{/* Summary info */}
-			<div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-				<div className="flex items-start space-x-3">
-					<div className="p-1 bg-blue-100 rounded">
-						<AlertTriangle className="h-4 w-4 text-blue-600" />
-					</div>
-					<div className="flex-1">
-						<h5 className="text-sm font-medium text-blue-800 mb-1">
-							Avaluació Individual
-						</h5>
-						<p className="text-xs text-blue-700 leading-relaxed">
-							Pots avaluar cada lot per separat segons les teves necessitats.
-							{lots.length > lotsWithProposals.length && (
-								<>
-									{' '}
-									{lots.length - lotsWithProposals.length} lot
-									{lots.length - lotsWithProposals.length > 1
-										? 's no han rebut'
-										: ' no ha rebut'}{' '}
-									propostes i s'ometrà automàticament.
-								</>
-							)}
-						</p>
-						{lotsWithProposals.length > 1 && (
-							<p className="text-xs text-blue-600 mt-1 font-medium">
-								💡 Consell: Avalua primer els lots més crítics o urgents
-							</p>
-						)}
-					</div>
-				</div>
 			</div>
 		</div>
 	);

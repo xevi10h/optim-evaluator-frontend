@@ -152,31 +152,6 @@ export default function EvaluationResults({
 					</div>
 				</div>
 
-				{evaluationResult.overallSummary && (
-					<div
-						className="rounded-xl p-6 animate-fade-in shadow-sm"
-						style={{
-							backgroundColor: '#f8fafc',
-							border: '1px solid #e2e8f0',
-							animationDelay: '0.1s',
-							animationFillMode: 'both',
-						}}
-					>
-						<h4
-							className="text-lg font-semibold mb-4 flex items-center"
-							style={{ color: '#1c1c1c' }}
-						>
-							<div className="p-2 bg-blue-100 rounded-lg mr-3">
-								<FileText className="h-5 w-5 text-blue-600" />
-							</div>
-							Resum General
-						</h4>
-						<p className="leading-relaxed text-gray-700 bg-white p-4 rounded-lg border border-gray-200">
-							{evaluationResult.overallSummary}
-						</p>
-					</div>
-				)}
-
 				<div className="space-y-8">
 					{evaluationResult.extractedLots.map((lotInfo, index) => {
 						const lotEvaluations =

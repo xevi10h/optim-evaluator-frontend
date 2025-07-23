@@ -198,53 +198,6 @@ export default function IndividualLotResults({
 						);
 					})}
 				</div>
-
-				{/* Completion Message */}
-				<div
-					className="space-y-6 animate-fade-in"
-					style={{ animationDelay: '1s', animationFillMode: 'both' }}
-				>
-					<div
-						className="flex justify-center pt-4 border-t"
-						style={{ borderColor: '#dfe7e6' }}
-					>
-						<div className="bg-gradient-to-r from-blue-50 to-indigo-100 rounded-xl p-6 text-center border border-blue-200">
-							<div className="flex items-center justify-center space-x-3 mb-4">
-								<div className="p-2 bg-blue-200 rounded-full">
-									<Target className="h-6 w-6 text-blue-700" />
-								</div>
-								<div>
-									<h4 className="text-lg font-bold text-blue-900 mb-1">
-										Avaluació Individual Completada
-									</h4>
-									<p className="text-sm text-blue-700">
-										{sortedResults.length} lot
-										{sortedResults.length > 1 ? 's' : ''} avaluat
-										{sortedResults.length > 1 ? 's' : ''} amb èxit de forma
-										individual
-									</p>
-								</div>
-							</div>
-
-							<p className="text-xs text-blue-600 mb-4">
-								💡 Cada lot ha estat avaluat amb els seus criteris específics
-								per obtenir la màxima precisió
-							</p>
-
-							<p className="text-xs text-blue-600">
-								📥 Els informes es poden descarregar des de la secció de cada
-								lot individual
-							</p>
-
-							{sortedResults.length > 1 && (
-								<p className="text-xs text-blue-600 mt-2">
-									Si vols avaluar tots els lots restants de cop, utilitza el
-									botó "Avaluar Tots els Lots"
-								</p>
-							)}
-						</div>
-					</div>
-				</div>
 			</div>
 		</div>
 	);

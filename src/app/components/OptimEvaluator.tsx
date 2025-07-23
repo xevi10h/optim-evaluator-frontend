@@ -436,11 +436,6 @@ export default function OptimEvaluator() {
 					lotsWithProposals,
 					extractedLots.length,
 				),
-				overallConfidence:
-					allEvaluations.length > 0
-						? allEvaluations.reduce((sum, lot) => sum + lot.confidence, 0) /
-						  allEvaluations.length
-						: 0,
 				completedLots: lotsWithProposals.length,
 				totalLots: extractedLots.length,
 				isComplete: true,
@@ -686,10 +681,10 @@ export default function OptimEvaluator() {
 																					)}
 																					{status.hasProposals ? (
 																						<span className="text-blue-600">
-																							{status.proposalCount} proposta
+																							{status.proposalCount} propost
 																							{status.proposalCount > 1
 																								? 'es'
-																								: ''}
+																								: 'a'}
 																						</span>
 																					) : (
 																						<span className="text-orange-600">

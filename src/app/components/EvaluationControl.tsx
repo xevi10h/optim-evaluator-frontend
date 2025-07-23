@@ -34,7 +34,7 @@ export default function EvaluationControl({
 		if (isProcessing) {
 			return 'Processant arxius...';
 		}
-		return lotsWithProposals > 1 ? 'Avaluar Tots els Lots' : 'Avaluar Lot';
+		return 'Avaluar Tots els Lots';
 	};
 
 	const getButtonDescription = () => {
@@ -44,7 +44,7 @@ export default function EvaluationControl({
 
 		let description = `${lotsWithProposals} lot${
 			lotsWithProposals > 1 ? 's' : ''
-		} amb ${totalProposals} proposta${totalProposals > 1 ? 'es' : ''}`;
+		} amb ${totalProposals} propost${totalProposals > 1 ? 'es' : 'a'}`;
 
 		if (lotsWithoutProposals > 0) {
 			description += ` • ${lotsWithoutProposals} lot${
@@ -99,32 +99,34 @@ export default function EvaluationControl({
 				</div>
 
 				{/* Evaluate All Button */}
-				<button
-					onClick={onEvaluateAll}
-					disabled={isDisabled}
-					className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 text-white ${
-						isDisabled
-							? 'cursor-not-allowed opacity-60 bg-gray-400'
-							: 'cursor-pointer hover:shadow-lg transform hover:scale-105 bg-green-600 hover:bg-green-700'
-					}`}
-				>
-					{isEvaluating ? (
-						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
-							<span>{getButtonText()}</span>
-						</>
-					) : isProcessing ? (
-						<>
-							<Loader2 className="h-5 w-5 animate-spin" />
-							<span>{getButtonText()}</span>
-						</>
-					) : (
-						<>
-							<Sparkles className="h-5 w-5" />
-							<span>{getButtonText()}</span>
-						</>
-					)}
-				</button>
+				{lotsWithProposals > 1 && (
+					<button
+						onClick={onEvaluateAll}
+						disabled={isDisabled}
+						className={`px-8 py-3 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 text-white ${
+							isDisabled
+								? 'cursor-not-allowed opacity-60 bg-gray-400'
+								: 'cursor-pointer hover:shadow-lg transform hover:scale-105 bg-green-600 hover:bg-green-700'
+						}`}
+					>
+						{isEvaluating ? (
+							<>
+								<Loader2 className="h-5 w-5 animate-spin" />
+								<span>{getButtonText()}</span>
+							</>
+						) : isProcessing ? (
+							<>
+								<Loader2 className="h-5 w-5 animate-spin" />
+								<span>{getButtonText()}</span>
+							</>
+						) : (
+							<>
+								<Sparkles className="h-5 w-5" />
+								<span>{getButtonText()}</span>
+							</>
+						)}
+					</button>
+				)}
 			</div>
 
 			{/* Info Section for Multiple Lots */}
@@ -153,22 +155,6 @@ export default function EvaluationControl({
 									. També pots avaluar lots individuals utilitzant els botons
 									específics a continuació.
 								</p>
-								<div className="flex items-center space-x-4 mt-2 text-xs">
-									<div className="flex items-center space-x-1">
-										<div className="w-2 h-2 bg-green-500 rounded-full"></div>
-										<span className="text-green-700">
-											Lots amb propostes: {lotsWithProposals}
-										</span>
-									</div>
-									{lotsWithoutProposals > 0 && (
-										<div className="flex items-center space-x-1">
-											<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-											<span className="text-gray-600">
-												Lots sense propostes: {lotsWithoutProposals}
-											</span>
-										</div>
-									)}
-								</div>
 							</div>
 						</div>
 					</div>
