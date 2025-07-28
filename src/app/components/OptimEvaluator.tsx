@@ -96,30 +96,7 @@ export default function OptimEvaluator() {
 				'Estàs segur que vols resetar tota la informació? Aquesta acció no es pot desfer.',
 			)
 		) {
-			setBasicInfo({
-				title: '',
-				expedient: '',
-				entity: '',
-				context: '',
-			});
-			setSpecificationFiles([]);
-			setProposalFiles([]);
-			setExtractedLots([]);
-			setIsLoadingLots(false);
-			setEvaluationProgress({
-				isEvaluating: false,
-				currentLot: 0,
-				totalLots: 0,
-				currentLotTitle: '',
-				completedEvaluations: [],
-			});
-			setLotEvaluationStatuses(new Map());
-			setIndividualLotResults(new Map());
-			setCurrentEvaluatingLot(null);
-			setEvaluationResult(null);
-			setError(null);
-			setIsComparingProposals(false);
-			setCurrentComparingLot(null);
+			window.location.reload();
 		}
 	};
 
