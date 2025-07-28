@@ -42,6 +42,7 @@ interface LotEvaluationStatus {
 	evaluations: LotEvaluation[];
 	hasProposals: boolean;
 	proposalCount: number;
+	lastEvaluatedProposalCount: number;
 }
 
 interface IndividualLotEvaluation {
@@ -108,13 +109,25 @@ export default function OptimEvaluator() {
 			const proposalCount = getUniqueProposalCount(lotProposals);
 			const existingStatus = lotEvaluationStatuses.get(lot.lotNumber);
 
+			const lastEvaluatedCount =
+				existingStatus?.lastEvaluatedProposalCount || 0;
+			const shouldResetEvaluation =
+				existingStatus?.isEvaluated && proposalCount > lastEvaluatedCount;
+
 			newStatuses.set(lot.lotNumber, {
 				lotNumber: lot.lotNumber,
-				isEvaluated: existingStatus?.isEvaluated || false,
+				isEvaluated: shouldResetEvaluation
+					? false
+					: existingStatus?.isEvaluated || false,
 				isEvaluating: existingStatus?.isEvaluating || false,
-				evaluations: existingStatus?.evaluations || [],
+				evaluations: shouldResetEvaluation
+					? []
+					: existingStatus?.evaluations || [],
 				hasProposals: proposalCount > 0,
 				proposalCount,
+				lastEvaluatedProposalCount: shouldResetEvaluation
+					? 0
+					: lastEvaluatedCount,
 			});
 		});
 
@@ -285,6 +298,8 @@ export default function OptimEvaluator() {
 				lotEvaluations,
 			);
 
+			const currentProposalCount = getUniqueProposalCount(lotProposals);
+
 			setLotEvaluationStatuses((prev) => {
 				const newStatuses = new Map(prev);
 				const status = newStatuses.get(lotInfo.lotNumber);
@@ -294,6 +309,7 @@ export default function OptimEvaluator() {
 						isEvaluating: false,
 						isEvaluated: true,
 						evaluations: lotEvaluations,
+						lastEvaluatedProposalCount: currentProposalCount,
 					});
 				}
 				return newStatuses;
@@ -407,6 +423,8 @@ export default function OptimEvaluator() {
 
 				allEvaluations.push(...lotEvaluations);
 
+				const currentProposalCount = getUniqueProposalCount(lotProposals);
+
 				setLotEvaluationStatuses((prev) => {
 					const newStatuses = new Map(prev);
 					const status = newStatuses.get(lot.lotNumber);
@@ -415,6 +433,7 @@ export default function OptimEvaluator() {
 							...status,
 							isEvaluated: true,
 							evaluations: lotEvaluations,
+							lastEvaluatedProposalCount: currentProposalCount,
 						});
 					}
 					return newStatuses;
